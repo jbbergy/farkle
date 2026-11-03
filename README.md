@@ -35,10 +35,12 @@ puis rejoué en tournant l’image du dé pour que la face tirée selon ses chan
 
 ## Adversaires, fin de partie et règles de la maison
 
-Le menu propose quatre adversaires (`OPPONENTS` dans `index.html`) : Kuba l’ivrogne, le vieil Ota, Bětka la servante
+Le menu propose quatre adversaires (`OPPONENTS` dans `index.html`) : Kuba le palefrenier, le vieil Ota, Bětka la servante
 et le Tavernier, du plus facile au plus coriace. Chacun a sa façon de jouer (`risk`, `slip`), sa mise maximale,
 son sac de dés spéciaux, la couleur de ses dés et ses répliques, écrites (menu, fin de partie) et dites
-(`OPP_TALK`, fichiers `audio/voix/<adversaire>_<moment>_<n>.mp3`). Les clients ne parlent du Tavernier comme
+(`OPP_TALK`, fichiers `audio/voix/<adversaire>_<moment>_<n>.mp3`) : début de partie, Farkle, gros tour, beau ou mauvais lancer,
+beau lancer du joueur, relance risquée, fin de partie, et impatience quand le joueur tarde (20 s, puis 40 s).
+Une réplique écrite sans fichier audio est simplement sautée. Les clients ne parlent du Tavernier comme
 adversaire que lorsque c’est lui qui joue (`ONLY_VS`, `ABOUT_TAVERNIER`), et un adversaire ne commente jamais
 la partie en spectateur. Le choix est gardé dans `farkle.adversaire`.
 

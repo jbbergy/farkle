@@ -788,7 +788,9 @@ const CONFIG = {
 };
 
 const RULES = { target: 4000, stake: 25, opponent: 'tavernier' };
-try { const saved = localStorage.getItem('farkle.adversaire'); if (['ivrogne', 'vieux', 'servante', 'tavernier'].includes(saved)) RULES.opponent = saved; } catch { /* le Tavernier */ }
+// (Kuba était « l’ivrogne » avant d’être palefrenier : identifiant « ivrogne »)
+const oppId = (id) => (id === 'ivrogne' ? 'palefrenier' : id);
+try { const saved = oppId(localStorage.getItem('farkle.adversaire')); if (['palefrenier', 'vieux', 'servante', 'tavernier'].includes(saved)) RULES.opponent = saved; } catch { /* le Tavernier */ }
 
 // Textures personnalisées : laisse `null` pour les textures procédurales.
 // Chemins relatifs à ce fichier, ex. 'textures/chene_color.jpg'.
@@ -1834,20 +1836,20 @@ function applyOppLook() {
 // ses dés ; maxStake : sa plus forte mise ; dice : les dés spéciaux qu’il peut sortir (null : toute l’échoppe) ;
 // look : la couleur de ses dés ordinaires. Les répliques du menu et de la fin de partie sont les siennes.
 const OPPONENTS = {
-  ivrogne: {
-    name: 'Kuba', Name: 'Kuba', full: 'Kuba, l’ivrogne', short: 'Kuba', row: 'Kuba', she: false,
-    tag: 'Il tente tout', risk: 1.8, slip: 0.3, maxStake: 25, dice: ['fele', 'bancal', 'pair', 'soufre'], look: { body: '#7a5434', pip: '#f0dfb6' },
-    hello: 'Hé ! Un partenaire ! Assieds-toi, je paie la prochaine… Enfin, toi, tu paies.',
-    resume: 'On en était où, déjà ? Ah oui : j’allais gagner.',
-    win: 'Tu m’as eu… C’est la bière, je vois double. On remet ça ?',
-    loss: 'Ha ! Kuba n’a pas perdu la main ! Encore une ?',
-    honorWin: 'Pour l’honneur, hein ? Tant mieux, il ne m’en reste plus beaucoup.',
-    honorLoss: 'Gagné ! Pour l’honneur… C’est déjà ça.',
-    rich: 'Ta bourse est bien grasse… Tu me prêtes de quoi miser ?',
-    credit: 'Le patron t’a glissé quelques pièces ? Il est bon, le patron.',
-    stakes: { 0: 'Pour l’honneur ? Ça tombe bien, ma bourse est à sec.', 10: 'Dix groschens ! Ça fait deux chopes, ça.', 25: 'Vingt-cinq ? Tout ce qui me reste… Allez, tope là !' },
-    lengths: ['Une chope ? Une seule ? Bon… pour commencer.', 'Une soirée ! Le temps de vider le tonneau.', 'Jusqu’à l’aube ? Si je tiens debout jusque-là…'],
-    beaten: 'Kuba renverse sa chope de dépit.', wins: ['Il fait tinter tes pièces en chantant faux.', 'Il chante victoire, faux comme toujours.'],
+  palefrenier: {
+    name: 'Kuba', Name: 'Kuba', full: 'Kuba, le palefrenier', short: 'Kuba', row: 'Kuba', she: false,
+    tag: 'Fougueux', risk: 1.8, slip: 0.3, maxStake: 25, dice: ['fele', 'bancal', 'pair', 'soufre'], look: { body: '#7a5434', pip: '#f0dfb6' },
+    hello: 'Salut ! Je sors de l’écurie, ça sent un peu le foin… Mais aux dés, je galope !',
+    resume: 'Ah, te revoilà ! J’ai juste eu le temps de bouchonner deux chevaux.',
+    win: 'Battu à plate couture… Comme un âne contre un destrier. Revanche ?',
+    loss: 'Ha ! Plus rapide qu’un cheval au galop ! On en refait une ?',
+    honorWin: 'Pour l’honneur, hein ? Tant mieux : mes gages ne tombent qu’à la Saint-Martin.',
+    honorLoss: 'Gagné ! Pour l’honneur… Je le raconterai quand même aux chevaux.',
+    rich: 'Avec une bourse pareille, tu pourrais t’acheter un cheval ! Ou deux ânes.',
+    credit: 'Le patron t’a glissé quelques pièces ? Moi, il me paie en avoine.',
+    stakes: { 0: 'Pour l’honneur ? Tant mieux, mes gages sont maigres.', 10: 'Dix groschens ! Le prix d’un fer à cheval.', 25: 'Vingt-cinq ? Toute ma paie du mois… Allez, au galop !' },
+    lengths: ['Une chope, vite fait : les chevaux attendent leur foin.', 'Une soirée ! Le maître ne rentre qu’à l’aube.', 'Jusqu’à l’aube ? Je dormirai dans la paille, demain.'],
+    beaten: 'Kuba tape du pied comme un poulain contrarié.', wins: ['Il fourre tes pièces dans sa besace en sifflant.', 'Il pousse un hennissement de joie. Si, si.'],
   },
   vieux: {
     name: 'le vieil Ota', Name: 'Le vieil Ota', full: 'le vieil Ota', short: 'Ota', row: '<span class="art">Le vieil </span>Ota', she: false,
@@ -1901,7 +1903,7 @@ const OPPONENTS = {
     beaten: 'Le Tavernier grommelle et remplit ta chope.', wins: ['Il fait déjà sonner tes pièces.', 'Il bombe le torse.'],
   },
 };
-const OPP_ORDER = ['ivrogne', 'vieux', 'servante', 'tavernier'];
+const OPP_ORDER = ['palefrenier', 'vieux', 'servante', 'tavernier'];
 const OPP = () => OPPONENTS[RULES.opponent];
 const il = () => (OPP().she ? 'Elle' : 'Il');
 // L’adversaire sort quelques dés spéciaux de son sac, d’autant plus que la mise est forte
@@ -2285,7 +2287,7 @@ try {
   const saved = JSON.parse(localStorage.getItem(CARNET_KEY));
   if (saved) {
     for (const k of ['starter', 'games', 'wins', 'bestTurn', 'bestPot', 'purseMax', 'hot', 'farkles']) if (Number.isFinite(saved[k])) carnet[k] = Math.max(0, saved[k] | 0);
-    for (const [id, r] of Object.entries(saved.vs || {})) carnet.vs[id] = { w: Math.max(0, r.w | 0), l: Math.max(0, r.l | 0) };
+    for (const [id, r] of Object.entries(saved.vs || {})) carnet.vs[oppId(id)] = { w: Math.max(0, r.w | 0), l: Math.max(0, r.l | 0) };
     for (const [id, t] of Object.entries(saved.feats || {})) if (Number.isFinite(t)) carnet.feats[id] = t;
   }
 } catch { /* carnet vierge */ }
@@ -2363,7 +2365,7 @@ function readMatch() {
         starter: m.starter === 1 ? 1 : 0, turns: Math.max(0, m.turns | 0), finalFrom: m.finalFrom === 0 || m.finalFrom === 1 ? m.finalFrom : null,
         house: { ouverture: !!m.house?.ouverture, troisFarkles: !!m.house?.troisFarkles },
         opened: pair(m.opened, Boolean) || [true, true], farkleRun: pair(m.farkleRun, (v) => Math.max(0, v | 0)) || [0, 0],
-        opponent: OPPONENTS[m.opponent] ? m.opponent : 'tavernier',
+        opponent: OPPONENTS[oppId(m.opponent)] ? oppId(m.opponent) : 'tavernier',
         trace: { farkles: Math.max(0, m.trace?.farkles | 0), deficit: Math.max(0, m.trace?.deficit | 0) } };
     }
   } catch { /* rien à reprendre */ }
@@ -2460,6 +2462,7 @@ function startGame(resume = null) {
 function beginTurn(p) {
   game.current = p; game.turnScore = 0; game.phase = 'idle'; game.clickable = new Set(); game.aiStatus = '';
   game.turns++; game.hotTurn = 0;
+  nag.count = 0; playerActed();
   saveMatch();
   // les dés de l’autre retournent sur son tapis ; ceux du lanceur partiront de là où ils sont
   // (ils gardent leur case jusqu’au lancer, pour suivre leur tapis si l’écran tourne)
@@ -2498,7 +2501,7 @@ async function rollAction() {
       unlock('brulants');
       if (game.hotTurn >= 2) unlock('forge');
     }
-    react('des_brulants', 0.85, 900);
+    react('des_brulants', 0.85, 900, game.current === 0 ? 'jaloux' : 'beau_coup');
     updateUI();
     await sleep(1000);
     if (tk !== game.token) return null;
@@ -2679,6 +2682,7 @@ async function aiTurn() {
       return;
     }
     game.aiStatus = remaining === 0 ? `${il()} ramasse les six dés…` : `${il()} tente sa chance avec ${remaining} dé${remaining > 1 ? 's' : ''}…`;
+    if (remaining && remaining <= 2) react('tente', 0.6, 100);
     updateUI();
     await sleep(650);
   }
@@ -2844,7 +2848,7 @@ function rulesHTML() {
     <h3>Les adversaires</h3>
     <p>Choisis contre qui tu joues dans le menu (ligne « Ton adversaire »), du plus facile au plus coriace :</p>
     <dl class="controls opponents">
-      <dt>Kuba, l’ivrogne</dt><dd>tente tout et se trompe souvent de dés ; il ne mise jamais plus de 25 groschens.</dd>
+      <dt>Kuba, le palefrenier</dt><dd>fougueux comme un poulain, il tente tout et se trompe souvent de dés ; il ne mise jamais plus de 25 groschens.</dd>
       <dt>Le vieil Ota</dt><dd>prudent, il garde ses points dès qu’il le peut ; 50 groschens au plus.</dd>
       <dt>Bětka, la servante</dt><dd>vive et maligne, elle sait quand s’arrêter ; 50 groschens au plus.</dd>
       <dt>Le Tavernier</dt><dd>le maître des lieux, le plus coriace ; il suit jusqu’à 100 groschens.</dd>
@@ -3412,7 +3416,7 @@ function sfxDefeat() { duckMusic(3); if (!playSample('defaite', { gain: 0.7 })) 
 const PATRONS = {
   vieux: { name: 'Le vieil Ota', pan: -0.55 },
   voyageur: { name: 'Un voyageur', pan: 0.6 },
-  ivrogne: { name: 'Kuba, l’ivrogne', pan: 0.35 },
+  palefrenier: { name: 'Kuba, le palefrenier', pan: 0.35 },
   jeune: { name: 'Le jeune Vojta', pan: -0.25 },
   servante: { name: 'Bětka, la servante', pan: 0.1 },
   commere: { name: 'La mère Ludmila', pan: -0.7 },
@@ -3425,7 +3429,7 @@ const TALK = {
     ['anecdote_2', 'servante', 'Le forgeron jure qu’un chat noir lui a volé un jambon entier la semaine dernière. Moi, je dis surtout que le chat avait une barbe… et qu’on l’a retrouvé le lendemain, en train de ronfler dans la grange.'],
     ['anecdote_3', 'jeune', 'Paraît que le seigneur promet une bourse d’argent à qui retrouvera son faucon. Toute la paroisse court dans les bois depuis trois jours… et le faucon, lui, dort tranquille sur le clocher de l’église !'],
     ['anecdote_4', 'commere', 'Ma grand-mère disait toujours : ne joue jamais aux dés un vendredi… et jamais contre un homme qui sourit trop. Regardez donc le Tavernier… Il sourit, là.'],
-    ['anecdote_5', 'ivrogne', 'Moi, j’ai vu un chevalier boire dix chopes sans s’asseoir ! Bon… à la onzième, il s’est assis. Dans l’auge des cochons.'],
+    ['anecdote_5', 'palefrenier', 'Moi, j’ai vu un chevalier boire dix chopes sans s’asseoir ! Bon… à la onzième, il s’est assis. Dans l’auge des cochons.'],
     ['anecdote_6', 'voyageur', 'J’ai traversé trois royaumes pour arriver jusqu’ici. Et partout, c’est la même chose : la bière est tiède, les routes sont boueuses… et quelqu’un perd sa chemise aux dés.'],
     ['anecdote_7', 'commere', 'Le curé cherche encore qui a remplacé le vin de messe par de la piquette. Il a longuement regardé le sacristain… et le sacristain, lui, regardait ses chaussures.'],
     ['anecdote_8', 'vieux', 'Il y a quarante hivers, le gel a pris la rivière si fort qu’on a tenu la foire dessus. Le meunier y avait installé son étal de saucisses… Au dégel, l’étal est parti au fil de l’eau vers la ville, avec le meunier assis dessus… qui vendait encore !'],
@@ -3434,13 +3438,13 @@ const TALK = {
     ['anecdote_11', 'servante', 'Il y a un moine qui vient tous les jeudis pour prêcher contre la boisson. Il prêche jusqu’à la fermeture… et il repart toujours en chantant.'],
     ['anecdote_12', 'jeune', 'Mon maître dit qu’un jour, je serai le meilleur forgeron du pays. Pour l’instant, j’ai surtout réussi à ferrer un cheval… à l’envers. Il marche très bien, remarquez. Mais il recule quand on lui dit d’avancer.'],
     ['anecdote_13', 'jeune', 'On dit qu’un trésor est enterré sous le vieux chêne, près du moulin. Hier soir, on était six à creuser… Pas de trésor. Mais on a trouvé le bailli, qui creusait déjà de l’autre côté, avec sa lanterne éteinte !'],
-    ['anecdote_14', 'ivrogne', 'La bière d’ici, c’est la meilleure du royaume ! Enfin… c’est la seule que je connaisse. Mais c’est la meilleure !'],
-    ['anecdote_15', 'ivrogne', 'Hier, j’ai parié avec le charron que je rentrerais chez moi sans tomber dans le fossé. Et j’ai gagné ! Bon… je suis tombé dans le puits. Mais pas dans le fossé !'],
+    ['anecdote_14', 'palefrenier', 'La bière d’ici, c’est la meilleure du royaume ! Enfin… c’est la seule que je connaisse. Mais c’est la meilleure !'],
+    ['anecdote_15', 'palefrenier', 'Hier, j’ai parié avec le charron que je rentrerais chez moi sans tomber dans le fossé. Et j’ai gagné ! Bon… je suis tombé dans le puits. Mais pas dans le fossé !'],
     ['anecdote_16', 'voyageur', 'Dans une grande ville, j’ai vu une horloge où de petits hommes de bois sortent à chaque heure, saluent… et rentrent dormir. Ici, c’est pareil : à minuit, Kuba se lève, salue… et retourne dormir sous la table.'],
     ['anecdote_17', 'commere', 'La fille du meunier a trois prétendants : le boulanger, le forgeron et le fils du tonnelier. Elle a promis d’épouser celui qui battrait le Tavernier aux dés… Ça fait deux ans qu’elle attend.'],
   ],
   farkle_toi: [
-    ['farkle_toi_1', 'ivrogne', 'Rien du tout ! Les dés t’ont joué un sale tour !'],
+    ['farkle_toi_1', 'palefrenier', 'Rien du tout ! Les dés t’ont joué un sale tour !'],
     ['farkle_toi_2', 'commere', 'Oh, quelle déveine… La chance reviendra, va.'],
     ['farkle_toi_3', 'voyageur', 'Pas un seul point ! Ça arrive aux meilleurs.'],
     ['farkle_toi_4', 'vieux', 'Les dés sont capricieux, ce soir…'],
@@ -3449,12 +3453,12 @@ const TALK = {
   farkle_tavernier: [
     ['farkle_tavernier_1', 'jeune', 'Le Tavernier fait chou blanc !'],
     ['farkle_tavernier_2', 'servante', 'Même le patron n’a pas la main, ce soir !'],
-    ['farkle_tavernier_3', 'ivrogne', 'Ha ! Le patron s’est fait avoir !'],
+    ['farkle_tavernier_3', 'palefrenier', 'Ha ! Le patron s’est fait avoir !'],
     ['farkle_tavernier_4', 'vieux', 'Même le Tavernier ne commande pas aux dés.'],
   ],
   pot_perdu_toi: [
     ['pot_perdu_toi_1', 'voyageur', 'Aïe… Tout ce pot envolé. Il fallait garder !'],
-    ['pot_perdu_toi_2', 'ivrogne', 'Ooooh ! Tout perdu ! J’en aurais pleuré dans ma bière.'],
+    ['pot_perdu_toi_2', 'palefrenier', 'Ooooh ! Tout perdu ! J’en aurais pleuré dans ma bière.'],
   ],
   pot_perdu_tavernier: [
     ['pot_perdu_tavernier_1', 'commere', 'Le Tavernier a eu les yeux plus gros que le ventre ! Bien fait.'],
@@ -3466,7 +3470,7 @@ const TALK = {
     ['des_brulants_3', 'vieux', 'Tous les six, d’un coup ? Le diable s’en mêle !'],
   ],
   trois_as: [
-    ['trois_as_1', 'ivrogne', 'Trois as ! Vous avez vu ça ?'],
+    ['trois_as_1', 'palefrenier', 'Trois as ! Vous avez vu ça ?'],
     ['trois_as_2', 'voyageur', 'Trois as sur la table ! Mille d’un coup !'],
   ],
   beau_lancer: [
@@ -3478,7 +3482,7 @@ const TALK = {
     ['grosse_mise_toi_2', 'commere', 'Voilà qui remplit la bourse !'],
   ],
   grosse_mise_tavernier: [
-    ['grosse_mise_tavernier_1', 'ivrogne', 'Le patron se remplit les poches… comme d’habitude.'],
+    ['grosse_mise_tavernier_1', 'palefrenier', 'Le patron se remplit les poches… comme d’habitude.'],
     ['grosse_mise_tavernier_2', 'voyageur', 'Il a de la veine, ce vieux renard.'],
   ],
   risque_paye: [
@@ -3486,7 +3490,7 @@ const TALK = {
     ['risque_paye_2', 'servante', 'Ha ! Le risque a payé !'],
   ],
   victoire_toi: [
-    ['victoire_toi_1', 'ivrogne', 'Le Tavernier est battu ! À boire pour tout le monde !'],
+    ['victoire_toi_1', 'palefrenier', 'Le Tavernier est battu ! À boire pour tout le monde !'],
     ['victoire_toi_2', 'vieux', 'Bien joué. Ça faisait longtemps qu’on n’avait pas vu ça, ici.'],
   ],
   victoire_tavernier: [
@@ -3496,7 +3500,8 @@ const TALK = {
 };
 // Ce que dit l’adversaire lui-même, assis en face du joueur (fichiers audio/voix/<adversaire>_<moment>_<n>.mp3) :
 // debut (première main), nargue (le joueur fait Farkle), deveine (il fait Farkle), gros_tour (il garde 1000 ou plus),
-// victoire, defaite
+// victoire, defaite, attente (le joueur tarde à jouer), beau_coup (il fait un beau lancer), mauvais_coup (son lancer
+// ne rapporte presque rien), jaloux (le joueur fait un beau lancer), tente (il relance avec un ou deux dés)
 const OPP_TALK = {
   tavernier: {
     debut: ['Allez, montre-moi ce que tu as dans le ventre.', 'Les dés sont à toi… pour l’instant.'],
@@ -3505,14 +3510,24 @@ const OPP_TALK = {
     gros_tour: ['Et voilà comment on tient une taverne !'],
     victoire: ['La maison gagne toujours, l’ami.'],
     defaite: ['Bien joué… Mais ne t’y habitue pas.'],
+    attente: ['Alors, l’ami ? Les dés ne vont pas se lancer tout seuls.', 'Je ferme à minuit, tu sais.', 'Tu comptes les poutres du plafond ? Lance donc !'],
+    beau_coup: ['Ha ! Regarde-moi ça. Pas mal, hein ?', 'Voilà un lancer digne de la maison !'],
+    mauvais_coup: ['Hmm… Pas fameux, ça.', 'Bah, on a vu mieux. Mais on a vu pire.'],
+    jaloux: ['Pas mal… Ne t’emballe pas pour autant.', 'Tiens, tiens… La chance te sourit, ce soir.'],
+    tente: ['Allez, encore un ! Qui ne risque rien n’a rien.', 'On ne tient pas une taverne sans prendre de risques !'],
   },
-  ivrogne: {
-    debut: ['À la tienne ! Et que le meilleur gagne… C’est-à-dire moi.', 'Attends, je vois deux tables… Je lance sur laquelle ?'],
-    nargue: ['Hé hé ! Même moi, j’aurais fait mieux !', 'Rien du tout ! À ta santé !'],
-    deveine: ['Hips… Ces dés sont saouls, pas moi !', 'Bah ! J’ai glissé. C’était pour rire.'],
-    gros_tour: ['Ha ! Kuba a encore la main ! Patron, une chope !'],
-    victoire: ['Gagné ! Tournée générale… C’est toi qui paies !'],
-    defaite: ['Perdu ? Bah… Je noie ça dans la bière.'],
+  palefrenier: {
+    debut: ['Allez, en selle ! Que le meilleur gagne.', 'J’ai les mains pleines de foin, mais les dés, ça me connaît !'],
+    nargue: ['Ha ! Tu as trébuché comme un poulain !', 'Rien du tout ? Même mon âne fait mieux !'],
+    deveine: ['Hé ! Ces dés ruent plus qu’une mule !', 'Bah ! Je suis tombé de selle. Je remonte !'],
+    gros_tour: ['Au galop ! Ça, c’est de la course !'],
+    victoire: ['Gagné ! Je vais le raconter aux chevaux !'],
+    defaite: ['Perdu… Bah, les chevaux ne m’en voudront pas.'],
+    attente: ['Hé, tu dors debout, comme un cheval ?', 'Allez, lance ! Mes chevaux vont finir par s’impatienter.', 'Même une mule se déciderait plus vite !'],
+    beau_coup: ['Hop ! Comme un saut d’obstacle !', 'Ha ! Pur-sang, ce lancer !'],
+    mauvais_coup: ['Oh… Un lancer de vieille carne, ça.', 'Hmm. Celui-là boite un peu.'],
+    jaloux: ['Hé ! D’où tu sors ça, toi ?', 'Pas mal… Tu as mis des fers neufs, ou quoi ?'],
+    tente: ['Allez, au galop ! Je relance !', 'Qui n’est jamais tombé n’est jamais monté à cheval !'],
   },
   vieux: {
     debut: ['Doucement, petit. Les dés n’aiment pas qu’on les brusque.', 'Voyons voir ce que les dés nous réservent.'],
@@ -3521,6 +3536,11 @@ const OPP_TALK = {
     gros_tour: ['Voilà ce que donnent quarante ans de taverne.'],
     victoire: ['La sagesse finit toujours par payer, petit.'],
     defaite: ['Bien joué, petit. Tu me rappelles moi, à ton âge.'],
+    attente: ['Prends ton temps, petit… Mais pas toute la nuit.', 'À mon âge, on n’a plus l’éternité devant soi, tu sais.', 'Tu réfléchis ? C’est bien. Mais lance, maintenant.'],
+    beau_coup: ['Hé hé. Le vieux a encore de beaux restes.', 'Voilà ce qu’on appelle un lancer de patience.'],
+    mauvais_coup: ['Hmm. Pas brillant. Il faudra s’en contenter.', 'Les dés sont fatigués, ce soir. Comme moi.'],
+    jaloux: ['Joli, petit. Mais un beau lancer ne fait pas une partie.', 'Tiens donc… Tu apprends vite.'],
+    tente: ['Allez… Une fois n’est pas coutume.', 'Je relance. Ne le dis à personne.'],
   },
   servante: {
     debut: ['Vite, vite ! J’ai des chopes qui attendent.', 'Allez, lance ! Et ne me fais pas perdre mon pourboire.'],
@@ -3529,21 +3549,28 @@ const OPP_TALK = {
     gros_tour: ['Et hop ! Ça, c’est le pourboire de la semaine !'],
     victoire: ['Gagné ! Je file servir, tu paieras en sortant.'],
     defaite: ['Bien joué… Mais je veux ma revanche après le service !'],
+    attente: ['Tu lances, oui ? J’ai six chopes qui m’attendent !', 'Si tu t’endors, je te sers une soupe !', 'Dépêche-toi, le patron va me gronder !'],
+    beau_coup: ['Et hop ! Servi chaud !', 'Ha ! Tu as vu ça ? Rapide comme le service.'],
+    mauvais_coup: ['Pfff… Même la vaisselle tombe mieux que ça.', 'Bon. On ne gagne pas à tous les coups.'],
+    jaloux: ['Oh ! Tu as triché, avoue !', 'Joli… Mais rien n’est encore joué.'],
+    tente: ['Allez, je relance ! Qui ne risque rien n’a pas de pourboire !', 'Encore un, pour la route !'],
   },
 };
 // [fichier, qui parle, texte] pour chaque réplique d’un adversaire
 const oppLines = (opp, moment) => OPP_TALK[opp][moment].map((text, i) => [`${opp}_${moment}_${i + 1}`, opp, text]);
 // Moment où l’adversaire peut répondre lui-même, pour chaque réaction des clients
+// (attente, mauvais_coup et tente : l’adversaire seul, les clients n’ont rien à en dire)
 const OWN_MOMENT = {
   farkle_toi: 'nargue', pot_perdu_toi: 'nargue', farkle_tavernier: 'deveine', pot_perdu_tavernier: 'deveine',
   grosse_mise_tavernier: 'gros_tour', victoire_toi: 'defaite', victoire_tavernier: 'victoire', debut: 'debut',
+  grosse_mise_toi: 'jaloux', attente: 'attente', mauvais_coup: 'mauvais_coup', tente: 'tente',
 };
 // Les clients parlent de l’adversaire du moment, jamais d’un autre : les réactions qui nomment le Tavernier
 // (ou le font passer pour ton adversaire) ne viennent que quand c’est lui qui joue ;
 // l’anecdote sur Kuba n’est pas racontée quand il est assis à ta table
 const ABOUT_TAVERNIER = new Set(['farkle_tavernier', 'pot_perdu_tavernier', 'grosse_mise_tavernier', 'victoire_tavernier']);
 const ONLY_VS = { grosse_mise_toi_1: 'tavernier', victoire_toi_1: 'tavernier', anecdote_4: 'tavernier' };
-const NOT_VS = { anecdote_16: 'ivrogne' };
+const NOT_VS = { anecdote_16: 'palefrenier' };
 const talk = { buffers: {}, bags: {}, current: null, busyUntil: 0, lastReaction: 0, nextAnecdote: 0, ready: null, oppLoaded: null };
 
 // Les réactions sont chargées d’avance (elles doivent partir tout de suite) ; les anecdotes, longues,
@@ -3582,11 +3609,12 @@ function crowdLines(cat) {
 }
 function pickLine(cat) { return pickFrom(`${cat}:${RULES.opponent}`, crowdLines(cat)); }
 // Qui répond à un coup : l’adversaire lui-même (parfois, ou toujours quand les clients n’ont rien à dire), ou un client
-function chooseLine(cat) {
-  const opp = RULES.opponent, moment = OWN_MOMENT[cat];
+// (`moment` : ce que l’adversaire dirait à la place d’un client ; par défaut celui de OWN_MOMENT)
+function chooseLine(cat, moment = OWN_MOMENT[cat]) {
+  const opp = RULES.opponent;
   const own = moment ? pickFrom(`${opp}:${moment}`, oppLines(opp, moment)) : null;
   const crowd = TALK[cat] ? pickLine(cat) : null;
-  if (own && (!crowd || Math.random() < 0.45)) return own;
+  if (own && (!crowd || Math.random() < 0.55)) return own;
   return crowd;
 }
 // Les réactions s’adressent au joueur : pleine voix, légère réverbération. Les anecdotes se racontent
@@ -3653,21 +3681,38 @@ function stopTalk() {
 // les autres coups seulement de temps en temps (`chance`), jamais deux fois de suite.
 // Une réaction coupe une anecdote en cours.
 const MUST_REACT = new Set(['farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier']);
-function react(cat, chance = 1, delay = 700) {
+function react(cat, chance = 1, delay = 700, moment = OWN_MOMENT[cat]) {
   if (!audio.ctx || !audio.on.voices) return;
   const now = performance.now(), speaking = now < talk.busyUntil && talk.current && !talk.current.anecdote;
-  if (!MUST_REACT.has(cat) && (Math.random() > chance || now - talk.lastReaction < 9000 || speaking)) return;
+  if (!MUST_REACT.has(cat) && (Math.random() > chance || now - talk.lastReaction < 7000 || speaking)) return;
   talk.lastReaction = now;
-  setTimeout(() => say(chooseLine(cat)), delay);
+  setTimeout(() => say(chooseLine(cat, moment)), delay);
 }
-// Commente un lancer marquant : trois as, risque payant (un ou deux dés relancés) ou gros lancer
+// Commente un lancer marquant : trois as, risque payant (un ou deux dés relancés) ou gros lancer, que les clients
+// saluent et que l’adversaire envie (lancer du joueur) ou savoure (le sien) ; un lancer de l’adversaire qui
+// ne rapporte presque rien avec quatre dés ou plus le fait grogner
 function commentRoll(counts, n) {
-  if (counts[1] >= 3) return react('trois_as', 0.9);
-  if (n <= 2) return react('risque_paye', 0.85);
   let best = 0;
   for (const s of enumerateSubsets(counts)) best = Math.max(best, s.score);
-  if (best >= 600) react('beau_lancer', 0.6);
+  const moment = game.current === 0 ? 'jaloux' : 'beau_coup';
+  if (counts[1] >= 3) return react('trois_as', 0.9, 700, moment);
+  if (n <= 2) return react('risque_paye', 0.85, 700, moment);
+  if (best >= 500) return react('beau_lancer', 0.7, 700, moment);
+  if (game.current === 1 && n >= 4 && best <= 100) react('mauvais_coup', 0.6);
 }
+// L’adversaire s’impatiente quand le joueur tarde (deux fois par tour au plus), mais pas pendant qu’il lit
+// les règles ou les réglages ; toucher l’écran ou une touche relance l’attente
+const nag = { since: 0, count: 0 };
+const playerActed = () => { nag.since = performance.now(); };
+addEventListener('pointerdown', playerActed);
+addEventListener('keydown', playerActed);
+setInterval(() => {
+  if (game.current !== 0 || !['idle', 'choosing'].includes(game.phase) || document.hidden) return;
+  if (!$('rules').classList.contains('hidden') || !$('settings-panel').classList.contains('hidden')) { playerActed(); return; }
+  if (nag.count >= 2 || performance.now() - nag.since < (nag.count ? 40000 : 20000)) return;
+  nag.count++; playerActed();
+  react('attente', 1, 0);
+}, 1000);
 // Une anecdote de temps en temps pendant la partie (toutes les 1 min 40 à 3 min), jamais par-dessus une réaction
 setInterval(() => {
   if (!audio.ctx || !audio.on.voices || document.hidden) return;
