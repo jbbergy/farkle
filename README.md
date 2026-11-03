@@ -25,6 +25,7 @@ Puis ouvrir http://localhost:8765.
 ## Groschens et dés spéciaux
 
 Avant chaque partie, le joueur mise des groschens ; le Tavernier en met autant et le gagnant empoche le pot.
+Une mise de 0 permet de jouer pour l’honneur : la bourse ne bouge pas et tout le monde joue avec des dés ordinaires.
 La bourse et les dés achetés sont gardés dans le navigateur (`localStorage`, clé `farkle.bourse`).
 Dans l’échoppe du menu, on achète des dés spéciaux (14 dés, dont un joker) et on en met jusqu’à six dans sa main.
 Leurs chances sont réglées dans `DIE_KINDS` (`index.html`) : chaque lancer est calculé d’avance par la physique,

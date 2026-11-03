@@ -182,6 +182,19 @@
   #toast[data-kind="hot"] .t-main { color: #ffc35a; }
   #toast[data-kind="bank"] .t-main { color: #f6d27a; }
 
+  /* Nom d’un dé spécial, au-dessus du dé survolé, choisi au clavier ou tout juste pris */
+  #die-tip {
+    position: fixed; z-index: 8; left: 0; top: 0; pointer-events: none; width: max-content; max-width: min(19rem, calc(100vw - 16px));
+    display: flex; align-items: center; gap: 10px; padding: 0.45rem 0.85rem 0.5rem;
+    color: var(--ink); line-height: 1.2;
+    transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity 0.18s;
+  }
+  #die-tip.below { transform: translate(-50%, 10px); }
+  #die-tip.show { opacity: 1; }
+  #die-tip .die-ico { width: 1.8rem; height: 1.8rem; margin: 0; vertical-align: 0; flex: none; }
+  #die-tip b { display: block; font-family: var(--f-sc); font-weight: normal; font-size: 1.15rem; color: var(--red); }
+  #die-tip small { display: block; margin-top: 1px; font-size: 1rem; }
+
   /* ───────── Fenêtres ───────── */
   .overlay {
     position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px;
@@ -212,9 +225,11 @@
   /* Petit écran ou grands caractères : fitModal retire d’abord l’ornement, puis le chapeau (et le titre rapetisse),
      puis le texte d’ambiance, jusqu’à ce que tout tienne sans défiler */
   .modal[data-trim="1"] [data-opt="1"],
-  .modal[data-trim="2"] [data-opt="1"], .modal[data-trim="2"] [data-opt="2"],
-  .modal[data-trim="3"] [data-opt] { display: none; }
-  .modal[data-trim="2"] .big-title, .modal[data-trim="3"] .big-title { font-size: 2.9rem; margin-bottom: 8px; }
+  .modal[data-trim="2"] :is([data-opt="1"], [data-opt="2"]),
+  .modal[data-trim="3"] :is([data-opt="1"], [data-opt="2"], [data-opt="3"]),
+  .modal[data-trim="4"] :is([data-opt="1"], [data-opt="2"], [data-opt="3"], [data-opt="4"]),
+  .modal[data-trim="5"] [data-opt] { display: none; }
+  .modal:is([data-trim="2"], [data-trim="3"], [data-trim="4"]) .big-title { font-size: 2.9rem; margin-bottom: 8px; }
   .modal h2 { font-family: var(--f-title); font-weight: normal; color: var(--red); font-size: 2.5rem; margin: 0 0 6px; }
   .modal p { text-align: left; line-height: 1.45; margin: 0 0 10px; }
   .modal .red { color: var(--red); }
@@ -280,11 +295,113 @@
   .die-card-foot .price { flex: 1 1 100%; font-family: var(--f-sc); font-size: 1.1rem; }
   .die-card-foot .btn { flex: 1 1 8em; min-height: 2.75rem; }
   .die-card-foot:empty { display: none; }
-  .purse { margin: 0 0 12px; text-align: center; }
-  .modal .purse { text-align: center; }
-  .purse b { color: var(--red); font-family: var(--f-sc); }
-  .choice button:disabled { opacity: 0.35; cursor: not-allowed; }
-  .purse-side { display: none; }
+
+  /* ───────── Menu : la table du Tavernier ─────────
+     Une colonne sur téléphone en portrait ; deux colonnes dès que la place le permet. La requête de conteneur
+     est en rem : elle suit aussi la taille du texte (A, A+, A++). */
+  .menu-modal { width: min(52rem, 100%); container-type: inline-size; }
+  .menu-grid { display: flex; flex-direction: column; gap: 12px; }
+  .menu-left, .menu-right { display: contents; }
+  .menu-intro { order: 1; }
+  .purse-badge { order: 2; }
+  .menu-stakes { order: 3; }
+  .menu-lengths { order: 4; }
+  .menu-hand { order: 5; }
+  @container (min-width: 30rem) {
+    .menu-grid { flex-direction: row; gap: 24px; }
+    .menu-left, .menu-right { display: flex; flex-direction: column; justify-content: center; gap: 12px; flex: 1 1 0; min-width: 0; }
+    .menu-right { flex-grow: 1.15; }
+  }
+  .modal .tavern-line { margin: 2px auto 0; max-width: 24em; font-style: italic; font-size: 1.1rem; line-height: 1.35; text-align: center; }
+  .tavern-line .who { font-style: normal; font-family: var(--f-sc); color: var(--ink-soft); white-space: nowrap; }
+  .tavern-line.say #tavern-say { display: inline-block; animation: say-in 0.45s ease; }
+  @keyframes say-in { from { opacity: 0; transform: translateY(5px); } }
+  /* la bourse */
+  .purse-badge {
+    display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 14px;
+    background: rgba(42, 25, 12, 0.08); border: 1px solid rgba(91, 63, 37, 0.45); border-radius: 8px;
+  }
+  .pouch { width: 3.4rem; height: 3.4rem; flex: none; }
+  .purse-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+  .purse-label { font-family: var(--f-sc); color: var(--ink-soft); letter-spacing: 0.06em; }
+  .purse-sum { font-size: 1.25rem; }
+  .purse-sum b { display: inline-block; font-family: var(--f-sc); font-weight: normal; font-size: 2.2rem; color: var(--red); }
+  .purse-badge.gain .purse-sum b { animation: purse-gain 1.2s ease; }
+  .purse-badge.loss .purse-sum b { animation: purse-loss 1.2s ease; }
+  @keyframes purse-gain { 30% { color: #a87a12; transform: scale(1.15); } }
+  @keyframes purse-loss { 30% { color: #5a0f0a; transform: scale(0.9); } }
+  .c-top { fill: #e2dccd; stroke: #5d4a30; stroke-width: 0.8; }
+  .c-side { fill: #9e9483; stroke: #5d4a30; stroke-width: 0.8; }
+  /* mises (piles de pièces) et durée de la partie */
+  .menu-section .field-label { margin-bottom: 5px; }
+  .stakes, .lengths { display: grid; gap: 8px; }
+  .stakes { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .lengths { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stakes button, .lengths button {
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; min-height: 2.9rem;
+    padding: 6px 4px; cursor: pointer; color: var(--ink); font-family: var(--f-sc); touch-action: manipulation;
+    background: rgba(255, 249, 228, 0.3); border: 2px solid var(--ink-soft); border-radius: 6px 9px 7px 10px;
+    transition: transform 0.15s, background-color 0.2s, box-shadow 0.2s;
+  }
+  .stakes button.active, .lengths button.active {
+    background: var(--red); border-color: #5e100b; color: #f3e3bf; transform: translateY(-2px); box-shadow: 0 4px 9px rgba(42, 25, 12, 0.35);
+  }
+  .stakes button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .stakes button:focus-visible, .lengths button:focus-visible, .hand-preview:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+  @media (hover: hover) {
+    :is(.stakes, .lengths) button:hover:not(:disabled):not(.active), .hand-preview:hover { background-color: rgba(255, 249, 228, 0.65); }
+  }
+  .stakes .coins { width: 2.3rem; height: 2rem; }
+  .stakes b { font-size: 1.35rem; font-weight: normal; line-height: 1; }
+  .lengths b { font-size: 1.12rem; font-weight: normal; line-height: 1.1; text-wrap: balance; }
+  .lengths small { font-family: var(--f-body); font-size: 0.92rem; line-height: 1.1; }
+  .modal .pot-line { margin: 7px 0 0; text-align: center; }
+  /* colonne étroite : la durée devient un sélecteur ‹ › sur une ligne, la bourse se resserre */
+  .length-stepper { display: none; grid-template-columns: 2.9rem minmax(0, 1fr) 2.9rem; gap: 6px; align-items: stretch; }
+  .length-stepper .step {
+    font-family: var(--f-sc); font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--ink); touch-action: manipulation;
+    background: rgba(255, 249, 228, 0.3); border: 2px solid var(--ink-soft); border-radius: 6px 9px 7px 10px;
+  }
+  .length-stepper .step:disabled { opacity: 0.3; cursor: default; }
+  .length-stepper .step:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+  .step-value {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 2.9rem; padding: 2px 4px;
+    font-family: var(--f-sc); color: #f3e3bf; background: var(--red); border: 2px solid #5e100b; border-radius: 6px 9px 7px 10px;
+  }
+  .step-value b { font-size: 1.12rem; font-weight: normal; line-height: 1.1; }
+  .step-value small { font-family: var(--f-body); font-size: 0.92rem; line-height: 1.1; }
+  .pot-line b { font-family: var(--f-sc); font-weight: normal; color: var(--red); }
+  /* tes dés : un raccourci vers l’échoppe */
+  .hand-preview {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 2.9rem; padding: 6px 10px;
+    cursor: pointer; color: var(--ink); font-family: var(--f-sc); font-size: 1.05rem; touch-action: manipulation;
+    background: rgba(255, 249, 228, 0.3); border: 2px dashed var(--ink-soft); border-radius: 6px;
+  }
+  .hand-icons { display: flex; gap: 3px; min-width: 0; }
+  .hand-icons .die-ico { width: 1.65rem; height: 1.65rem; margin: 0; vertical-align: 0; flex: none; }
+  .hand-go { white-space: nowrap; color: var(--red); }
+  .menu-modal .modal-actions { margin-top: 14px; }
+  .btn-start { font-size: 1.3rem; }
+  .modal-actions .btn-start { min-width: 11em; }
+  .menu-modal .short { display: none; }
+  @container (max-width: 22rem) {
+    /* « Règles du jeu » devient un « ? » à côté de la mise : une ligne de boutons au lieu de deux */
+    .menu-modal .modal-actions { flex-wrap: nowrap; gap: 8px; }
+    .modal-actions .btn-start { flex: 1 1 auto; min-width: 0; font-size: 1.15rem; text-wrap: balance; }
+    .modal-actions #btn-menu-rules { flex: none; min-width: 0; width: 3.2rem; padding-inline: 0; font-size: 1.5rem; }
+    .menu-modal .long { display: none; }
+    .menu-modal .short { display: inline; }
+    .stakes { gap: 5px; }
+    .hand-go .word { display: none; }
+    .hand-go { font-size: 1.5rem; line-height: 1; }
+    .hand-icons .die-ico { width: 1.5rem; height: 1.5rem; }
+    .lengths { display: none; }
+    .length-stepper { display: grid; }
+    .purse-badge { padding: 4px 10px; gap: 8px; }
+    .pouch { width: 2.6rem; height: 2.6rem; }
+    .purse-sum { font-size: 1.1rem; }
+    .purse-sum b { font-size: 1.7rem; }
+  }
 
   #loading {
     position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #050302;
@@ -333,6 +450,8 @@
     /* écran étroit (en rem) : les deux sceaux s’empilent à droite pour laisser la largeur aux scores */
     html.narrow #scores { right: calc(16px + 2.75rem); }
     html.narrow #corner { flex-direction: column; gap: 6px; }
+    /* le chapeau du menu ne passe pas sous la roue des réglages */
+    .menu-intro .kicker { padding-inline: 2.5rem; }
   }
   /* ───────── Téléphone en paysage : sceaux et scores à gauche, commandes à droite ───────── */
   @media (orientation: landscape) and (max-height: 560px) {
@@ -350,17 +469,20 @@
     .big-title { font-size: 3.2rem; }
     .lede { font-size: 1rem; margin-bottom: 10px; }
     .rules-page { padding: 16px 10px 14px 24px; }
-    /* menu en deux colonnes : le titre à gauche, les options à droite */
-    #menu .modal { width: min(46rem, 100%); }
-    .menu-body { display: flex; align-items: center; gap: 20px; }
-    .menu-intro { flex: 1 1 0; min-width: 0; }
-    .menu-options { flex: 1.7 1 0; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 12px; }
-    .menu-options .field-label { text-align: right; max-width: 6em; }
-    .menu-options .choice { margin: 4px 0; }
-    /* la bourse passe sous le titre, à gauche, où il reste de la place */
-    .menu-intro .purse-side { display: block; margin: 8px 0 0; }
-    .menu-options .purse-main { display: none; }
-    .menu-options .choice button { flex: 1 1 0; max-width: 5.5em; padding-inline: 0.3em; }
+    /* menu resserré : la table doit tenir dans la hauteur de l’écran (le titre part en dernier, voir fitModal) */
+    .overlay { padding: 8px 16px; }
+    .lengths { display: none; }
+    .length-stepper { display: grid; }
+    .menu-lengths .field-label, .menu-hand .field-label { display: none; }
+    .hand-go .word { display: none; }
+    .hand-go { font-size: 1.5rem; line-height: 1; }
+    .menu-grid, .menu-left, .menu-right { gap: 8px; }
+    .purse-badge { padding: 4px 10px; gap: 8px; }
+    .pouch { width: 2.5rem; height: 2.5rem; }
+    .purse-sum b { font-size: 1.7rem; }
+    .menu-section .field-label { margin-bottom: 3px; }
+    .menu-modal .modal-actions { margin-top: 8px; }
+    .modal-actions .btn-start { min-width: 0; }
   }
   @media (max-height: 820px) {
     html[data-ui="3"] #scores .panel-title { display: none; }
@@ -389,7 +511,7 @@
 <div id="hud" class="hidden">
   <section id="scores" class="parchment">
     <h1 class="panel-title">Farkle</h1>
-    <div class="target"><div>Objectif : <span id="target-label">4000</span> points</div><div>Pot : <span id="pot-label">0</span> groschens</div></div>
+    <div class="target"><div>Objectif : <span id="target-label">4000</span> points</div><div id="pot-label">Pot : 0 groschens</div></div>
     <div class="row" id="row-0"><span class="who">Toi</span><span class="lead"></span><span class="pts" id="score-0">0</span><div class="bar"><i id="bar-0"></i></div></div>
     <div class="row" id="row-1"><span class="who"><span class="art">Le </span>Tavernier</span><span class="lead"></span><span class="pts" id="score-1">0</span><div class="bar"><i id="bar-1"></i></div></div>
   </section>
@@ -430,43 +552,56 @@
   </div>
 </div>
 
+<div id="die-tip" class="parchment" role="status"></div>
 <div id="toast" aria-live="polite"><div class="t-main"></div><div class="t-sub"></div></div>
 
 <div id="menu" class="overlay">
-  <div class="parchment modal">
+  <div class="parchment modal menu-modal">
     <div class="modal-body menu-body">
-      <div class="menu-intro">
-        <div class="kicker" data-opt="2">Une partie de dés à la taverne</div>
-        <h1 class="big-title">Farkle</h1>
-        <div class="ornament" data-opt="1">❦</div>
-        <p class="lede" data-opt="3">Six dés d’os, une chandelle qui vacille, et le Tavernier qui attend ta mise. Le premier à atteindre l’objectif rafle le pot.</p>
-        <p class="purse purse-side">Ta bourse : <b class="purse-amount">100</b> groschens</p>
-      </div>
-      <div class="menu-options">
-        <div class="field-label">Objectif</div>
-        <div class="choice" id="target-choice">
-          <button data-target="2000">2000</button>
-          <button data-target="4000" class="active">4000</button>
-          <button data-target="8000">8000</button>
+      <div class="menu-grid">
+        <div class="menu-left">
+          <div class="menu-intro">
+            <div class="kicker" data-opt="1">Une partie de dés à la taverne</div>
+            <h1 class="big-title" data-opt="5">Farkle</h1>
+            <p class="tavern-line" data-opt="4"><span id="tavern-say"></span> <span class="who">— le Tavernier</span></p>
+          </div>
+          <div class="purse-badge" role="status">
+            <svg class="pouch" viewBox="0 0 40 40" aria-hidden="true">
+              <ellipse cx="30" cy="34.5" rx="6" ry="2.6" class="c-side"/><ellipse cx="30" cy="33" rx="6" ry="2.6" class="c-top"/>
+              <path d="M14 13Q7 20 7.5 27Q8 36 20 36Q31 36 31.5 27Q32 20 26 13Z" fill="#7a4622" stroke="#3b220e" stroke-width="1.4"/>
+              <path d="M13 13Q10.5 7 14.5 5.5Q17 9 20 5.5Q23 9 25.5 5.5Q29.5 7 27 13Z" fill="#94603a" stroke="#3b220e" stroke-width="1.4"/>
+              <ellipse cx="15.5" cy="24" rx="3.6" ry="6.5" fill="#b07a48" opacity="0.45"/>
+              <path d="M12.5 13.6Q20 16.4 27.5 13.6" fill="none" stroke="#e0b866" stroke-width="2"/>
+              <path d="M26 15.4l2.4 5M26 15.4l-0.6 5.4" fill="none" stroke="#e0b866" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <div class="purse-text"><span class="purse-label">Ta bourse</span><span class="purse-sum"><b class="purse-amount">100</b> groschens</span></div>
+          </div>
+          <div class="menu-section menu-hand">
+            <div class="field-label" id="hand-label">Tes dés</div>
+            <button class="hand-preview" id="btn-shop" aria-describedby="hand-label"><span class="hand-icons" id="hand-icons"></span><span class="hand-go"><span class="word">Échoppe </span>›</span></button>
+          </div>
         </div>
-        <div class="field-label">Mise</div>
-        <div class="choice" id="stake-choice">
-          <button data-stake="10">10</button>
-          <button data-stake="25" class="active">25</button>
-          <button data-stake="50">50</button>
-          <button data-stake="100">100</button>
-        </div>
-        <p class="purse purse-main">Ta bourse : <b class="purse-amount">100</b> groschens</p>
-        <div class="field-label">Taille du texte</div>
-        <div class="choice size-choice" data-size-choice>
-          <button data-ui="1" aria-label="Normale">A</button><button data-ui="2" aria-label="Grande">A+</button><button data-ui="3" aria-label="Très grande">A++</button>
+        <div class="menu-right">
+          <div class="menu-section menu-stakes" role="group" aria-labelledby="stake-label">
+            <div class="field-label" id="stake-label">Ta mise</div>
+            <div class="stakes" id="stake-choice"></div>
+            <p class="pot-line" id="pot-line" data-opt="3"></p>
+          </div>
+          <div class="menu-section menu-lengths" role="group" aria-labelledby="length-label">
+            <div class="field-label" id="length-label">Durée de la partie</div>
+            <div class="lengths" id="target-choice"></div>
+            <div class="length-stepper">
+              <button class="step" data-step="-1" aria-label="Partie plus courte">‹</button>
+              <div class="step-value"><b id="length-name">Une soirée</b><small id="length-points">4000 points</small></div>
+              <button class="step" data-step="1" aria-label="Partie plus longue">›</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-wax" id="btn-start">Prendre place</button>
-      <button class="btn btn-wood" id="btn-shop">Dés spéciaux</button>
-      <button class="btn btn-wood" id="btn-menu-rules">Règles du jeu</button>
+      <button class="btn btn-wax btn-start" id="btn-start">Miser 25 groschens</button>
+      <button class="btn btn-wood" id="btn-menu-rules" aria-label="Règles du jeu"><span class="long">Règles du jeu</span><span class="short" aria-hidden="true">?</span></button>
     </div>
   </div>
 </div>
@@ -1352,7 +1487,7 @@ function applyLayout() {
       m.position.set(portrait ? s * CONFIG.reserveX : 0, CONFIG.tableY + 0.025, portrait ? 0 : s * CONFIG.reserveZ);
     });
     // les dés déjà en réserve suivent leur tapis, chopes et bourses restent du côté de leur joueur
-    if (portrait !== wasPortrait) for (const d of dice) if (d.slot >= 0 && !d.tween) d.mesh.position.copy(reservePos(d.side, d.slot));
+    if (portrait !== wasPortrait) for (const d of allDice) if (d.slot >= 0 && !d.tween) d.mesh.position.copy(reservePos(d.side, d.slot));
     placeSideProps();
     resetView();
   }
@@ -1427,7 +1562,10 @@ function faceUpQuat(faceIndex, yaw = 0) {
 }
 const randomQuat = () => new THREE.Quaternion().setFromEuler(new THREE.Euler(rand(0, 6.283), rand(0, 6.283), rand(0, 6.283)));
 
-const dice = [];
+// Chaque joueur a son jeu de six dés : os clair (et dés spéciaux) pour le joueur, os teinté au brou de noix pour le Tavernier.
+// `dice` est le jeu du joueur dont c’est le tour ; l’autre jeu attend sur le tapis de son propriétaire.
+const dice = [], allDice = [], diceSets = [[], []];
+const TAVERN_LOOK = { body: '#a8673a', pip: '#f3e6c4' };
 let dieFaces = null;   // faces procédurales, gardées pour fabriquer celles des dés spéciaux
 const dieMaps = {};    // textures du dé ordinaire
 function createDice() {
@@ -1446,10 +1584,13 @@ function createDice() {
   }
   geo.clearGroups();
   const aged = new THREE.Color(0.93, 0.87, 0.78);
-  for (let i = 0; i < 6; i++) {
-    const tint = new THREE.Color(1, 1, 1).lerp(aged, rand(0, 0.55));
+  const tavern = tintedMaps('tavernier', TAVERN_LOOK);
+  for (let i = 0; i < 12; i++) {
+    const owner = i < 6 ? 0 : 1, base = owner ? tavern : dieMaps;
+    const tint = new THREE.Color(1, 1, 1).lerp(aged, rand(0, owner ? 0.3 : 0.55));
+    if (owner && !dieFaces) tint.multiply(new THREE.Color(TAVERN_LOOK.body));
     const mat = new THREE.MeshPhysicalMaterial({
-      map, bumpMap, bumpScale: 2.2, normalMap,
+      map: base.map, bumpMap: base.bumpMap, bumpScale: 2.2, normalMap,
       color: tint, roughness: 0.5, metalness: 0, clearcoat: 0.4, clearcoatRoughness: 0.45,
       emissive: new THREE.Color(0xff9440), emissiveIntensity: 0, envMapIntensity: 0.8,
     });
@@ -1461,57 +1602,77 @@ function createDice() {
       linearDamping: 0.06, angularDamping: 0.09, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.25,
       collisionFilterGroup: G.DICE, collisionFilterMask: MASK_ALL,
     });
-    const d = { id: i, mesh, body, mat, tint, kind: null, state: 'table', slot: -1, side: 0, value: 1, rest: null, inWorld: false, physics: false, entering: null, tween: null, glow: 0, lastSound: 0 };
+    const d = { id: i, owner, mesh, body, mat, tint, base, kind: null, state: 'table', slot: -1, side: owner, value: 1, rest: null, inWorld: false, physics: false, entering: null, tween: null, glow: 0, lastSound: 0 };
     mesh.userData.die = d;
     body.die = d;
     body.addEventListener('collide', (e) => onDieCollide(d, e));
-    dice.push(d);
+    allDice.push(d);
+    diceSets[owner].push(d);
   }
+  useSet(0);
 }
+function useSet(p) { dice.length = 0; dice.push(...diceSets[p]); }
 
 // ─── Dés spéciaux ───
 // Achetés avec des groschens dans l’échoppe du menu ; le joueur en met jusqu’à six dans sa main,
 // les autres dés restent ordinaires. Le Tavernier joue toujours avec des dés ordinaires.
 // w : chances sur 100 de chaque face, du 1 au 6. joker : face gravée d’une tête cornue, qui remplace n’importe quel chiffre.
+// desc : texte de l’échoppe ; effect : résumé court, dans la bulle qui s’affiche en jeu au-dessus du dé.
 const DIE_CATS = ['Diableries', 'Reliques', 'Dés pipés', 'Curiosités'];
 const DIE_KINDS = {
   soufre: { cat: 0, name: 'Dé de soufre', price: 160, w: [10, 9, 9, 9, 10, 53], body: '#e3c04f', pip: '#3b2a0c',
-    desc: 'Il sent la mèche brûlée et tombe sur le 6 une fois sur deux. À plusieurs, les brelans de 6 pleuvent.' },
+    desc: 'Il sent la mèche brûlée et tombe sur le 6 une fois sur deux. À plusieurs, les brelans de 6 pleuvent.',
+    effect: 'Tombe sur le 6 une fois sur deux.' },
   braise: { cat: 0, name: 'Dé de braise', price: 220, w: [9, 8, 8, 8, 33, 34], body: '#9c2f1f', pip: '#f6d27a',
-    desc: 'Chaud comme la forge : il aime le 5 et le 6.' },
+    desc: 'Chaud comme la forge : il aime le 5 et le 6.',
+    effect: 'Tombe sur le 5 ou le 6 deux fois sur trois.' },
   cornu: { cat: 0, name: 'Dé du Cornu', price: 600, max: 1, joker: 1, w: [24, 15, 15, 15, 16, 15], body: '#2b211d', pip: '#e0523a',
-    desc: 'Sa tête cornue remplace n’importe quel chiffre pour compléter un brelan, un carré ou une suite. Seule, elle ne rapporte rien.' },
+    desc: 'Sa tête cornue remplace n’importe quel chiffre pour compléter un brelan, un carré ou une suite. Seule, elle ne rapporte rien.',
+    effect: 'Sa tête cornue est un joker : elle complète un brelan, un carré ou une suite.' },
   procope: { cat: 1, name: 'Dé de saint Procope', price: 130, w: [10, 10, 45, 12, 11, 12], body: '#f3ecdc', pip: '#24467e',
-    desc: 'L’ermite de Sázava avait un faible pour le 3 : il sort presque une fois sur deux.' },
+    desc: 'L’ermite de Sázava avait un faible pour le 3 : il sort presque une fois sur deux.',
+    effect: 'Tombe sur le 3 près d’une fois sur deux.' },
   venceslas: { cat: 1, name: 'Dé de saint Venceslas', price: 200, w: [14, 10, 12, 12, 40, 12], body: '#d9c6e6', pip: '#3e1f55',
-    desc: 'Le bon duc porte chance au 5, qui rapporte à tous les coups.' },
+    desc: 'Le bon duc porte chance au 5, qui rapporte à tous les coups.',
+    effect: 'Tombe sur le 5 deux fois sur cinq.' },
   adalbert: { cat: 1, name: 'Dé de saint Adalbert', price: 320, w: [34, 8, 8, 8, 18, 24], body: '#f6f0e2', pip: '#8a6414',
-    desc: 'Béni pour le 1 et le 6 : de quoi ouvrir un tour sans trembler.' },
+    desc: 'Béni pour le 1 et le 6 : de quoi ouvrir un tour sans trembler.',
+    effect: 'Tombe souvent sur le 1 (une fois sur trois) ou sur le 6.' },
   fele: { cat: 2, name: 'Dé fêlé', price: 30, w: [21, 16, 16, 15, 16, 16], body: '#d6d0c4', pip: '#4a3020',
-    desc: 'Une fêlure le fait pencher, à peine, vers le 1. Le premier dé du tricheur.' },
+    desc: 'Une fêlure le fait pencher, à peine, vers le 1. Le premier dé du tricheur.',
+    effect: 'Tombe un peu plus souvent sur le 1.' },
   pair: { cat: 2, name: 'Dé pair', price: 60, w: [5, 30, 5, 30, 5, 25], body: '#efe4cf', pip: '#1f6a55',
-    desc: 'Il ne connaît guère que le 2, le 4 et le 6. Bon pour les brelans, risqué seul.' },
+    desc: 'Il ne connaît guère que le 2, le 4 et le 6. Bon pour les brelans, risqué seul.',
+    effect: 'Tombe presque toujours sur 2, 4 ou 6.' },
   petits: { cat: 2, name: 'Dé des petits', price: 210, w: [32, 24, 18, 12, 8, 6], body: '#c49563', pip: '#24140a',
-    desc: 'Il roule vers les petits chiffres : beaucoup de 1, presque jamais de 6.' },
+    desc: 'Il roule vers les petits chiffres : beaucoup de 1, presque jamais de 6.',
+    effect: 'Beaucoup de 1 et de 2, presque jamais de 6.' },
   impair: { cat: 2, name: 'Dé impair', price: 240, w: [30, 5, 30, 5, 25, 5], body: '#26262c', pip: '#f2ead6',
-    desc: 'Il tombe presque toujours sur 1, 3 ou 5.' },
+    desc: 'Il tombe presque toujours sur 1, 3 ou 5.',
+    effect: 'Tombe presque toujours sur 1, 3 ou 5.' },
   chanceux: { cat: 2, name: 'Dé chanceux', price: 300, w: [30, 10, 10, 10, 30, 10], body: '#4f8a57', pip: '#f5ecd2',
-    desc: 'Le 1 et le 5 sortent plus souvent : il éloigne le Farkle.' },
+    desc: 'Le 1 et le 5 sortent plus souvent : il éloigne le Farkle.',
+    effect: 'Tombe plus souvent sur le 1 et le 5.' },
   plombe: { cat: 2, name: 'Dé plombé', price: 480, w: [52, 9, 10, 10, 9, 10], body: '#8f9091', pip: '#151515',
-    desc: 'Une goutte de plomb sous le 6 : il retombe sur le 1 plus d’une fois sur deux.' },
+    desc: 'Une goutte de plomb sous le 6 : il retombe sur le 1 plus d’une fois sur deux.',
+    effect: 'Tombe sur le 1 plus d’une fois sur deux.' },
   bancal: { cat: 3, name: 'Dé bancal', price: 80, w: [6, 8, 10, 26, 30, 20], body: '#d8b98c', pip: '#6b2414',
-    desc: 'Taillé de travers, il penche vers le 4 et le 5.' },
+    desc: 'Taillé de travers, il penche vers le 4 et le 5.',
+    effect: 'Penche vers le 4 et le 5.' },
   colporteur: { cat: 3, name: 'Dé du colporteur', price: 110, w: [10, 21, 21, 21, 17, 10], body: '#3c5f8f', pip: '#f3e6c4',
-    desc: 'Rapporté de Nuremberg, il préfère les chiffres du milieu : de quoi tenter les suites.' },
+    desc: 'Rapporté de Nuremberg, il préfère les chiffres du milieu : de quoi tenter les suites.',
+    effect: 'Préfère le 2, le 3 et le 4 : bon pour les suites.' },
 };
 // Valeur d’un dé pour le score : 0 pour la tête cornue (joker), sinon le chiffre du dessus
 const faceValue = (d) => (d.kind && DIE_KINDS[d.kind].joker === d.value ? 0 : d.value);
-// Textures d’un dé spécial (fabriquées à la première utilisation) : l’os teinté, les points de sa couleur
+// Textures d’un dé spécial, ou des dés du Tavernier (fabriquées à la première utilisation) :
+// l’os teinté de la couleur `body`, les points de la couleur `pip` (et la tête cornue du joker)
 const kindTextures = new Map();
-function kindMaps(id) {
-  if (!id || !dieFaces) return dieMaps;
+const kindMaps = (id) => (id ? tintedMaps(id, DIE_KINDS[id]) : dieMaps);
+function tintedMaps(id, k) {
+  if (!dieFaces) return dieMaps;
   if (!kindTextures.has(id)) {
-    const k = DIE_KINDS[id], S = dieFaces.colorBase[1].width, color = {}, bump = {};
+    const S = dieFaces.colorBase[1].width, color = {}, bump = {};
     for (let v = 1; v <= 6; v++) {
       const cc = makeCanvas(S, S), c = cc.getContext('2d');
       c.drawImage(dieFaces.colorBase[v], 0, 0);
@@ -1530,15 +1691,27 @@ const WHITE = new THREE.Color(1, 1, 1);
 function setKind(d, id) {
   if (d.kind === id) return;
   d.kind = id;
-  const m = kindMaps(id);
+  const m = id ? kindMaps(id) : d.base;
   d.mat.map = m.map; d.mat.bumpMap = m.bumpMap;
   // sans faces procédurales (textures personnalisées), le dé spécial est seulement teinté
   d.mat.color.copy(!id ? d.tint : dieFaces ? WHITE : new THREE.Color(DIE_KINDS[id].body));
 }
-// Les dés du lanceur : la main du joueur, ou six dés ordinaires pour le Tavernier
+// Les dés spéciaux de chacun sur son jeu : la main du joueur, celle tirée au hasard pour le Tavernier
+// (sans mise, tout le monde joue avec des dés ordinaires)
 function equipDice(side) {
-  const hand = side === 0 ? wallet.hand : [];
-  dice.forEach((d, i) => setKind(d, hand[i] || null));
+  const hand = !game.pot ? [] : side === 0 ? wallet.hand : game.tavernHand;
+  diceSets[side].forEach((d, i) => setKind(d, hand[i] || null));
+}
+// Le Tavernier sort quelques dés spéciaux au hasard, d’autant plus que la mise est forte
+const TAVERN_MAX = { 10: 1, 25: 2, 50: 3, 100: 4 };
+function pickTavernHand(stake) {
+  const ids = Object.keys(DIE_KINDS), hand = [];
+  const n = Math.floor(Math.random() * ((TAVERN_MAX[stake] || 0) + 1));
+  while (hand.length < n) {
+    const id = ids[(Math.random() * ids.length) | 0];
+    if (!(DIE_KINDS[id].max === 1 && hand.includes(id))) hand.push(id);
+  }
+  return hand;
 }
 
 function setInWorld(d, on) {
@@ -1559,11 +1732,24 @@ function storeRest(d) {
 
 // Dés disposés sur le plateau pour l’écran d’accueil
 function layoutDiceAtRest() {
-  dice.forEach((d, i) => {
+  restOnMat(1, false);
+  diceSets[0].forEach((d, i) => {
     const x = [-2.6, 0, 2.6][i % 3] + rand(-0.35, 0.35), z = [-1.1, 1.1][(i / 3) | 0] + rand(-0.3, 0.3);
     d.mesh.position.set(x, 0.5, z);
     d.mesh.quaternion.copy(faceUpQuat((Math.random() * 6) | 0, rand(0, Math.PI * 2)));
     placeBodyAtMesh(d); setInWorld(d, true); d.body.sleep(); storeRest(d);
+  });
+}
+
+// Les dés d’un joueur qui ne joue pas attendent sur son tapis, un par case
+function restOnMat(side, animate = true) {
+  diceSets[side].forEach((d, i) => {
+    setInWorld(d, false);
+    d.state = 'idle'; d.slot = i; d.side = side; slots[side][i] = d;
+    const face = animate ? topFace(d.mesh.quaternion).index : (Math.random() * 6) | 0;
+    const pos = reservePos(side, i), quat = faceUpQuat(face, rand(-0.07, 0.07));
+    if (animate) moveDie(d, pos, quat, { duration: 420 + i * 40, arc: 1.2 });
+    else { d.physics = false; d.mesh.position.copy(pos); d.mesh.quaternion.copy(quat); }
   });
 }
 
@@ -1602,10 +1788,9 @@ let replayJob = null;
 async function throwDice(list, side) {
   const tk = game.token;
   sfxRattle(side);
+  for (const d of list) d.slot = -1;
   await Promise.all(list.map((d, i) => { setInWorld(d, false); return moveDie(d, spawnPos(side, i), randomQuat(), { duration: 360 + i * 35, arc: 1.4 }); }));
   if (tk !== game.token) return false;
-  // les six dés partent du même côté : ce sont ceux du lanceur (hors écran, le changement ne se voit pas)
-  if (list.length === dice.length) equipDice(side);
   await sleep(140);
   if (tk !== game.token) return false;
   const dir = side === 0 ? -1 : 1;
@@ -1811,12 +1996,13 @@ function formatParts(parts) {
 // ════════════════════════════════════════════════════════════════════
 //  8. DÉROULEMENT D’UNE PARTIE
 // ════════════════════════════════════════════════════════════════════
-const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, token: 0, clickable: new Set(), aiStatus: '', pot: 0 };
+const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, token: 0, clickable: new Set(), aiStatus: '', pot: 0, lastResult: null, tavernHand: [] };
 
 // ─── Bourse : groschens et dés spéciaux du joueur (mémorisés dans le navigateur) ───
 // Chacun mise autant que l’autre ; le gagnant empoche le pot. Une bourse vide est renflouée par le Tavernier.
-const STAKES = [10, 25, 50, 100];
-const PURSE_START = 100, CREDIT = 20, HAND_SIZE = 6;
+// Mise 0 : partie pour l’honneur, sans groschens ni dés spéciaux.
+const STAKES = [0, 10, 25, 50, 100];
+const MIN_STAKE = 10, PURSE_START = 100, CREDIT = 20, HAND_SIZE = 6;
 const wallet = { purse: PURSE_START, owned: {}, hand: [] };
 try {
   const saved = JSON.parse(localStorage.getItem('farkle.bourse'));
@@ -1826,7 +2012,7 @@ try {
     for (const id of saved.hand || []) if (wallet.hand.length < HAND_SIZE && inHand(id) < (wallet.owned[id] || 0)) wallet.hand.push(id);
   }
 } catch { /* stockage indisponible : bourse de départ */ }
-if (wallet.purse < STAKES[0]) wallet.purse += CREDIT;
+if (wallet.purse < MIN_STAKE) wallet.purse += CREDIT;
 function inHand(id) { return wallet.hand.filter((h) => h === id).length; }
 function saveWallet() {
   try { localStorage.setItem('farkle.bourse', JSON.stringify(wallet)); } catch { /* stockage indisponible */ }
@@ -1870,6 +2056,7 @@ function returnToBoard(d) {
 }
 function toggleDie(d) {
   if (d.state === 'pending') returnToBoard(d); else setAside(d);
+  if (d.kind) { dieTip.flash = d; dieTip.until = performance.now() + 2200; }
   updateUI();
 }
 
@@ -1884,17 +2071,21 @@ function startGame() {
   game.scores = [0, 0]; shownScores[0] = shownScores[1] = 0;
   el.scores.forEach((s) => { s.textContent = 0; }); // l’affichage animé ne bouge qu’au prochain changement de score
   $('target-label').textContent = RULES.target;
-  $('pot-label').textContent = game.pot;
-  // textures des dés spéciaux préparées avant le premier lancer
-  for (const id of wallet.hand) renderer.initTexture(kindMaps(id).map);
+  $('pot-label').textContent = game.pot ? `Pot : ${game.pot} groschens` : 'Pour l’honneur';
+  game.tavernHand = game.pot ? pickTavernHand(RULES.stake) : [];
+  equipDice(0); equipDice(1);
   $('menu').classList.add('hidden'); $('gameover').classList.add('hidden'); $('hud').classList.remove('hidden');
   document.body.dataset.screen = 'game';
   beginTurn(0);
 }
 function beginTurn(p) {
   game.current = p; game.turnScore = 0; game.phase = 'idle'; game.clickable = new Set(); game.aiStatus = '';
-  slots[0].fill(null); slots[1].fill(null);
-  for (const d of dice) { d.state = 'table'; d.slot = -1; }
+  // les dés de l’autre retournent sur son tapis ; ceux du lanceur partiront de là où ils sont
+  // (ils gardent leur case jusqu’au lancer, pour suivre leur tapis si l’écran tourne)
+  useSet(p);
+  slots[p].fill(null);
+  for (const d of dice) d.state = 'table';
+  restOnMat(1 - p);
   updateUI();
   if (p === 1) aiTurn();
   else toast('À toi de jouer', '', 'info', 1100);
@@ -1982,17 +2173,20 @@ function gameOver(winner) {
   game.phase = 'over';
   updateUI();
   const [me, him] = game.scores;
-  let money = winner === 0 ? `Tu empoches le pot : ${game.pot} groschens.` : `Ta mise de ${game.pot / 2} groschens est perdue.`;
+  let money = !game.pot ? 'Partie pour l’honneur : rien de gagné, rien de perdu.'
+    : winner === 0 ? `Tu empoches le pot : ${game.pot} groschens.` : `Ta mise de ${game.pot / 2} groschens est perdue.`;
   if (winner === 0) wallet.purse += game.pot;
-  if (wallet.purse < STAKES[0]) {
+  game.lastResult = (game.pot ? '' : 'honneur-') + (winner === 0 ? 'win' : 'loss');
+  if (wallet.purse < MIN_STAKE) {
     wallet.purse += CREDIT;
+    game.lastResult = 'credit';
     money += ` Ta bourse est vide : ${CONFIG.aiLower}, bon prince, te glisse ${CREDIT} groschens.`;
   }
   saveWallet();
   $('go-title').textContent = winner === 0 ? 'Victoire !' : 'Défaite…';
   $('go-text').textContent = winner === 0
     ? `Tu l’emportes, ${me} points contre ${him}. ${CONFIG.ai} grommelle et remplit ta chope.`
-    : `${CONFIG.ai} l’emporte, ${him} points contre ${me}. Il fait déjà sonner tes pièces.`;
+    : `${CONFIG.ai} l’emporte, ${him} points contre ${me}. ${game.pot ? 'Il fait déjà sonner tes pièces.' : 'Il bombe le torse.'}`;
   $('go-money').textContent = `${money} Ta bourse : ${wallet.purse} groschens.`;
   $('gameover').classList.remove('hidden');
   fitModal($('gameover').querySelector('.modal'));
@@ -2190,9 +2384,11 @@ function rulesHTML() {
 
     <h3>Groschens et dés spéciaux</h3>
     <p>Avant la partie, choisis ta <b>mise</b> : ${CONFIG.aiLower} en met autant, et le gagnant empoche les deux.
-      Ta bourse est gardée d’une partie à l’autre.</p>
-    <p>Avec tes gains, achète des <b>dés spéciaux</b> (bouton « Dés spéciaux » du menu) : chacun tombe plus souvent sur certains chiffres.
+      Ta bourse est gardée d’une partie à l’autre. Avec une mise de 0, tu joues <b>pour l’honneur</b> : rien à gagner ni à perdre, et des dés ordinaires pour tout le monde.</p>
+    <p>Avec tes gains, achète des <b>dés spéciaux</b> à l’échoppe (ligne « Tes dés » du menu) : chacun tombe plus souvent sur certains chiffres.
       Mets-en jusqu’à six dans ta main ; les autres restent des dés ordinaires. Sur le plateau, tu les reconnais à leur couleur.</p>
+    <p>${CONFIG.ai} a son propre jeu, en os brun. Quand on mise, il sort lui aussi quelques dés spéciaux pris au hasard :
+      plus la mise est forte, plus il en a. ${isCoarse ? 'Touche' : 'Survole'} un dé spécial pour lire son nom.</p>
     <p>${dieIcon(0, DIE_KINDS.cornu)} La tête cornue du <b>Dé du Cornu</b> est un joker : elle remplace n’importe quel chiffre
       pour compléter un brelan, un carré ou une suite, mais ne rapporte rien seule.</p>
 
@@ -2272,25 +2468,96 @@ function closeShop() {
   if ($('shop').classList.contains('hidden')) return;
   $('shop').classList.add('hidden');
   $('menu').classList.remove('hidden');
-  renderPurse();
+  renderMenu();
 }
-// Bourse et mises du menu : une mise plus forte que la bourse est grisée
-function renderPurse() {
-  document.querySelectorAll('.purse-amount').forEach((b) => { b.textContent = wallet.purse; });
+// ─── Menu : la table du Tavernier ───
+// Le Tavernier commente la mise et la durée choisies ; la bourse s’anime quand elle a changé depuis la dernière fois.
+const LENGTHS = [
+  { target: 2000, name: 'Une chope', say: 'Le temps d’une chope ? Alors ne traînons pas.' },
+  { target: 4000, name: 'Une soirée', say: 'Une soirée entière, comme il se doit.' },
+  { target: 8000, name: 'Jusqu’à l’aube', say: 'Jusqu’à l’aube ! Je mets un tonneau en perce.' },
+];
+const STAKE_SAY = {
+  0: 'Pour l’honneur ? Soit, mais avec des dés ordinaires.',
+  10: 'Dix groschens ? Une mise de prudent… Assieds-toi quand même.',
+  25: 'Vingt-cinq groschens, voilà une mise honnête.',
+  50: 'Cinquante ! Tu as du cran, ou tu as trop bu.',
+  100: 'Cent groschens… Ce soir, l’un de nous deux rentre les poches vides.',
+};
+function greeting() {
+  if (game.lastResult === 'credit') return `Ta bourse sonnait creux : je t’ai glissé ${CREDIT} groschens. N’en parle à personne.`;
+  if (game.lastResult === 'win') return 'Tu m’as plumé, chenapan. Tu m’accordes une revanche ?';
+  if (game.lastResult === 'loss') return 'Merci pour les groschens, l’ami. On remet ça ?';
+  if (game.lastResult === 'honneur-win') return 'Bien joué… Heureusement pour moi, il n’y avait rien sur la table.';
+  if (game.lastResult === 'honneur-loss') return 'L’honneur est sauf, ta bourse aussi. Une vraie partie, maintenant ?';
+  if (wallet.purse >= 500) return 'Te voilà les poches pleines… Elles ne le resteront pas longtemps.';
+  return 'Assieds-toi, l’ami. Combien mets-tu sur la table ?';
+}
+function tavernSay(text) {
+  const line = document.querySelector('.tavern-line');
+  $('tavern-say').textContent = `« ${text} »`;
+  line.classList.remove('say'); void line.offsetWidth; line.classList.add('say');
+  fitModal($('menu').querySelector('.modal'));
+}
+// Une pile de pièces par palier de mise ; sans mise, une place vide sur la table
+const coinStack = (n) => `<svg class="coins" viewBox="0 0 30 26" aria-hidden="true" data-opt="2">${n ? Array.from({ length: n }, (_, i) =>
+  `<ellipse cx="15" cy="${22.6 - i * 4.4}" rx="11" ry="3.4" class="c-side"/><ellipse cx="15" cy="${21 - i * 4.4}" rx="11" ry="3.4" class="c-top"/>`).join('')
+  : '<ellipse cx="15" cy="21" rx="11" ry="3.4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2.2 1.8"/>'}</svg>`;
+$('stake-choice').innerHTML = STAKES.map((v, i) =>
+  `<button data-stake="${v}" aria-label="${v ? `${v} groschens` : 'Sans mise, pour l’honneur'}">${coinStack(i)}<b>${v}</b></button>`).join('');
+$('target-choice').innerHTML = LENGTHS.map((l) => `<button data-target="${l.target}"><b>${l.name}</b><small>${l.target} points</small></button>`).join('');
+// Bourse, mises, pot, dés en main et bouton de départ ; une mise plus forte que la bourse est grisée
+function renderMenu() {
   if (RULES.stake > wallet.purse) RULES.stake = [...STAKES].reverse().find((s) => s <= wallet.purse) || STAKES[0];
   document.querySelectorAll('#stake-choice button').forEach((b) => {
-    const v = +b.dataset.stake;
+    const v = +b.dataset.stake, on = v === RULES.stake;
     b.disabled = v > wallet.purse;
-    b.classList.toggle('active', v === RULES.stake);
-    b.setAttribute('aria-pressed', String(v === RULES.stake));
+    b.title = b.disabled ? 'Ta bourse est trop légère' : '';
+    b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
   });
+  document.querySelectorAll('#target-choice button').forEach((b) => {
+    const on = +b.dataset.target === RULES.target;
+    b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
+  });
+  const li = LENGTHS.findIndex((l) => l.target === RULES.target);
+  $('length-name').textContent = LENGTHS[li].name;
+  $('length-points').textContent = `${RULES.target} points`;
+  document.querySelectorAll('.length-stepper .step').forEach((b) => { b.disabled = !LENGTHS[li + +b.dataset.step]; });
+  const honor = RULES.stake === 0, hand = honor ? [] : wallet.hand;
+  $('pot-line').innerHTML = honor ? 'Pas de mise : on joue pour l’honneur, avec des dés ordinaires.'
+    : `Le Tavernier suit : <b>${RULES.stake * 2}</b> groschens sur la table.`;
+  // libellé court sur un écran étroit, pour tenir sur une ligne à côté du « ? »
+  const [long, short] = honor ? ['Jouer pour l’honneur', 'Sans mise'] : [`Miser ${RULES.stake} groschens`, `Miser ${RULES.stake}`];
+  $('btn-start').innerHTML = `<span class="long">${long}</span><span class="short">${short}</span>`;
+  $('btn-start').setAttribute('aria-label', long);
+  $('hand-icons').innerHTML = Array.from({ length: HAND_SIZE }, (_, i) => (hand[i] ? kindIcon(hand[i]) : dieIcon(i + 1))).join('');
+  const names = hand.map((id) => DIE_KINDS[id].name), plain = HAND_SIZE - names.length;
+  const desc = names.length ? `${names.join(', ')}${plain ? ` et ${plain} dé${plain > 1 ? 's' : ''} ordinaire${plain > 1 ? 's' : ''}` : ''}` : 'Six dés ordinaires';
+  $('btn-shop').setAttribute('aria-label', `${desc}. Ouvrir l’échoppe aux dés.`);
+  showPurse();
+  fitModal($('menu').querySelector('.modal'));
+}
+let shownPurse = null;
+function showPurse() {
+  const to = wallet.purse, from = shownPurse ?? to, badge = document.querySelector('.purse-badge');
+  const els = document.querySelectorAll('.purse-amount');
+  shownPurse = to;
+  if (from === to) { els.forEach((e) => { e.textContent = to; }); return; }
+  badge.classList.remove('gain', 'loss'); void badge.offsetWidth; badge.classList.add(to > from ? 'gain' : 'loss');
+  const t0 = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / 900);
+    els.forEach((e) => { e.textContent = Math.round(from + (to - from) * easeInOutCubic(k)); });
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 // Menu et fin de partie sur un petit écran (ou avec de grands caractères) : on retire les éléments
 // facultatifs (data-opt) un niveau après l’autre, jusqu’à ce que la fenêtre tienne sans défiler
 function fitModal(modal) {
   const body = modal.querySelector('.modal-body');
-  const levels = modal.querySelector('[data-opt]') ? 3 : 0;
+  const levels = Math.max(0, ...[...modal.querySelectorAll('[data-opt]')].map((e) => +e.dataset.opt));
   for (let level = 0; level <= levels; level++) {
     modal.dataset.trim = level;
     if (body.scrollHeight <= body.clientHeight + 1) return;
@@ -2580,8 +2847,8 @@ function sfxPlace(surface) {
   if (playSample(surface === 'leather' ? 'cuir' : 'bois', { gain: surface === 'leather' ? 0.6 : 0.4, rate: rand(0.95, 1.08) })) return;
   synthHit(surface === 'leather' ? 6 : 4, 'wood');
 }
-function sfxCoins() {
-  if (playSample('pieces', { gain: 0.7, rate: rand(0.97, 1.04) }) || !sfxOn()) return;
+function sfxCoins(gain = 0.7) {
+  if (playSample('pieces', { gain, rate: rand(0.97, 1.04) }) || !sfxOn()) return;
   const t0 = audio.ctx.currentTime;
   for (let i = 0; i < 7; i++) { const t = t0 + i * 0.055 + Math.random() * 0.03, f = rand(2300, 3600); tone(f, t, 0.35, 0.06, 'sine'); tone(f * 2.76, t, 0.2, 0.025, 'sine'); }
 }
@@ -2778,7 +3045,7 @@ function setNdc(e) {
 }
 function pickDie() {
   raycaster.setFromCamera(ndc, camera);
-  const hit = raycaster.intersectObjects(dice.map((d) => d.mesh), false)[0];
+  const hit = raycaster.intersectObjects(allDice.map((d) => d.mesh), false)[0];
   return hit ? hit.object.userData.die : null;
 }
 const _sv = new THREE.Vector3();
@@ -2807,6 +3074,8 @@ canvasEl.addEventListener('click', (e) => {
   setNdc(e);
   const d = pickDie() || nearestSelectable(e.clientX, e.clientY, isCoarse ? 42 : 12);
   if (d && canSelect(d)) toggleDie(d);
+  // au doigt, sans survol : toucher un dé spécial qu’on ne peut pas prendre montre quand même son nom
+  else if (d && d.kind) { dieTip.flash = d; dieTip.until = performance.now() + 2200; }
 });
 
 // ─── Zoom sur le plateau : molette (vers le pointeur), pincement à deux doigts, touches + − 0 ───
@@ -2882,6 +3151,41 @@ function updateHover() {
   if (cursor !== cursorShown) canvasEl.style.cursor = cursorShown = cursor;
 }
 
+// ─── Nom des dés spéciaux : bulle au survol, au clavier, ou un moment après avoir pris le dé ───
+const dieTip = { el: $('die-tip'), die: null, label: '', flash: null, until: 0 };
+const _up = new THREE.Vector3();
+function tipTarget() {
+  if (game.phase === 'menu' || game.phase === 'over' || game.phase === 'rolling') return null;
+  if (hovered && hovered.kind) return hovered;
+  if (kb.active && kb.focus && kb.focus.kind) return kb.focus;
+  if (dieTip.flash && dieTip.flash.kind && performance.now() < dieTip.until) return dieTip.flash;
+  return null;
+}
+function updateDieTip() {
+  const d = tipTarget(), el = dieTip.el;
+  el.classList.toggle('show', !!d);
+  if (!d) return;
+  const k = DIE_KINDS[d.kind], joker = faceValue(d) === 0;
+  const label = `${d.kind}|${joker}`;
+  if (label !== dieTip.label) {
+    dieTip.label = label;
+    el.innerHTML = `${kindIcon(d.kind)}<span><b>${k.name}</b><small>${joker ? 'Joker : remplace n’importe quel chiffre dans une combinaison.' : k.effect}</small></span>`;
+  }
+  // juste au-dessus du dé, quel que soit le sens de la caméra (portrait ou paysage) ;
+  // en dessous s’il n’y a pas la place en haut de l’écran, et jamais hors des bords
+  const r = canvasEl.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  const at = (dir) => {
+    _up.set(0, dir, 0).applyQuaternion(camera.quaternion).multiplyScalar(0.75).add(d.mesh.position).project(camera);
+    return [r.left + ((_up.x + 1) / 2) * r.width, r.top + ((1 - _up.y) / 2) * r.height];
+  };
+  let [x, y] = at(1);
+  const below = y - h - 10 < 8;
+  if (below) [x, y] = at(-1);
+  el.classList.toggle('below', below);
+  el.style.left = `${clamp(x, w / 2 + 8, innerWidth - w / 2 - 8)}px`;
+  el.style.top = `${y}px`;
+}
+
 // ─── Choix d’un dé au clavier (flèches / ZQSD, Espace ou Entrée pour le prendre) ───
 const kb = { active: false, focus: null };
 const focusable = () => dice.filter(canSelect);
@@ -2934,7 +3238,7 @@ scene.add(focusRing);
 
 function updateGlow(t, dt) {
   const focus = kb.active && kb.focus && canSelect(kb.focus) ? kb.focus : null;
-  for (const d of dice) {
+  for (const d of allDice) {
     let target = 0;
     if ((d === hovered || d === focus) && canSelect(d)) target = d.state === 'pending' ? 0.22 : 0.4;
     else if (d.state === 'pending') target = 0.1 + 0.06 * Math.sin(t * 4 + d.id);
@@ -2968,11 +3272,21 @@ addEventListener('keydown', (e) => {
   else if (k === 'g') { e.preventDefault(); if (!e.repeat && !el.bank.disabled) el.bank.click(); }
   else if (k === ' ' || k === 'enter') { e.preventDefault(); if (!e.repeat && myChoice) toggleFocused(); }
 });
+function chooseLength(target) {
+  initAudio();
+  RULES.target = target;
+  sfxPlace('wood');
+  tavernSay(LENGTHS.find((l) => l.target === target).say);
+  renderMenu();
+}
 $('target-choice').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-target]');
-  if (!b) return;
-  document.querySelectorAll('#target-choice button').forEach((x) => x.classList.toggle('active', x === b));
-  RULES.target = +b.dataset.target;
+  if (b) chooseLength(+b.dataset.target);
+});
+document.querySelector('.length-stepper').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-step]');
+  const next = b && LENGTHS[LENGTHS.findIndex((l) => l.target === RULES.target) + +b.dataset.step];
+  if (next) chooseLength(next.target);
 });
 $('btn-start').addEventListener('click', () => { initAudio(); startGame(); });
 $('btn-again').addEventListener('click', () => { initAudio(); startGame(); });
@@ -2980,16 +3294,21 @@ function backToMenu() {
   game.token++; game.phase = 'menu'; replayJob = null;
   $('gameover').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden');
   document.body.dataset.screen = 'menu';
-  renderPurse();
+  renderMenu();
+  tavernSay(greeting());
 }
 $('btn-to-menu').addEventListener('click', backToMenu);
 $('stake-choice').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-stake]');
   if (!b || b.disabled) return;
+  initAudio();
   RULES.stake = +b.dataset.stake;
-  renderPurse();
+  sfxCoins(0.35);
+  tavernSay(STAKE_SAY[RULES.stake]);
+  renderMenu();
 });
-renderPurse();
+renderMenu();
+tavernSay(greeting());
 $('btn-shop').addEventListener('click', openShop);
 $('btn-shop-close').addEventListener('click', closeShop);
 $('shop').addEventListener('click', (e) => { if (e.target.id === 'shop') closeShop(); });
@@ -3116,12 +3435,13 @@ function adaptResolution(delta, interval) {
 function update(dt) {
   elapsed += dt;
   if (!sim) world.step(1 / 120, dt, 8); // pendant le calcul d’un lancer, c’est lui qui fait avancer la physique
-  for (const d of dice) if (d.physics) { d.mesh.position.copy(d.body.position); d.mesh.quaternion.copy(d.body.quaternion); }
+  for (const d of allDice) if (d.physics) { d.mesh.position.copy(d.body.position); d.mesh.quaternion.copy(d.body.quaternion); }
   updateReplay(dt);
   updateTweens(dt);
   updateCandles(elapsed, dt);
   updateDust(elapsed, dt);
   updateHover();
+  updateDieTip();
   updateGlow(elapsed, dt);
   updateScoresDisplay(dt);
   // zoom du joueur, lissé
@@ -3152,8 +3472,8 @@ setTimeout(() => loadingEl.remove(), 1200);
 
 // Accès console pour le débogage
 window.FarkleDebug = {
-  game, dice, RULES, scoreAll, enumerateSubsets, hasScore, audio, kb, view, camera, renderer, talk, say, pickLine, react,
-  wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderPurse,
+  game, dice, allDice, diceSets, RULES, scoreAll, enumerateSubsets, hasScore, audio, kb, view, camera, renderer, talk, say, pickLine, react,
+  wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderMenu,
   replay: () => replayJob, throwDice,
   layout: () => layout,
   // position écran (px CSS) d’un dé, pour tester les clics
