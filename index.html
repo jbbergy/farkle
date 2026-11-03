@@ -300,6 +300,7 @@
   .die-card-foot .price { flex: 1 1 100%; font-family: var(--f-sc); font-size: 1.1rem; }
   .die-card-foot .btn { flex: 1 1 8em; min-height: 2.75rem; }
   .die-card-foot:empty { display: none; }
+  .die-card-foot .btn-ghost.armed { background: var(--red); border-color: #5e100b; color: #f3e3bf; }
 
   /* ───────── Menu : la table du Tavernier ─────────
      Une colonne sur téléphone en portrait ; deux colonnes dès que la place le permet. La requête de conteneur
@@ -2508,13 +2509,16 @@ function dieCard(id) {
   const buy = owned >= max ? '' : `<p class="price">${k.price} groschens${missing > 0 ? ` · il t’en manque ${missing}` : ''}</p>
     <button class="btn btn-wood" data-buy="${id}" aria-label="Acheter le ${k.name} pour ${k.price} groschens"${missing > 0 ? ' disabled' : ''}>Acheter</button>`;
   const equip = used < owned ? `<button class="btn btn-wax" data-equip="${id}"${wallet.hand.length >= HAND_SIZE ? ' disabled' : ''}>Mettre en main</button>` : '';
+  const sell = owned ? `<button class="btn btn-ghost" data-sell="${id}" aria-label="Revendre un ${k.name} pour ${resale(id)} groschens">Revendre · ${resale(id)}</button>` : '';
   return `<article class="die-card">
     <div class="die-card-head">${kindIcon(id)}<div><h4>${k.name}</h4><p>${k.desc}</p></div></div>
     <div class="odds" role="img" aria-label="Chances : ${k.w.map((p, i) => `${face(i + 1)} ${p} %`).join(', ')}">${odds}</div>
     ${status ? `<p class="status">${status}</p>` : ''}
-    <div class="die-card-foot">${buy}${equip}</div>
+    <div class="die-card-foot">${buy}${equip}${sell}</div>
   </article>`;
 }
+// Un dé se revend à l’échoppe la moitié de son prix
+const resale = (id) => Math.floor(DIE_KINDS[id].price / 2);
 function shopHTML() {
   const slots = Array.from({ length: HAND_SIZE }, (_, i) => {
     const id = wallet.hand[i];
@@ -2529,19 +2533,20 @@ function shopHTML() {
   return `<h2 id="shop-title">Dés spéciaux</h2>
     <p class="lede">Ta bourse : <b>${wallet.purse}</b> groschens</p>
     <h3>Ta main</h3>
-    <p>Les six dés que tu lances. ${isCoarse ? 'Touche' : 'Clique'} un dé spécial pour le ranger : un dé ordinaire reprend sa place.</p>
+    <p>Les six dés que tu lances. ${isCoarse ? 'Touche' : 'Clique'} un dé spécial pour le ranger : un dé ordinaire reprend sa place.
+      Un dé dont tu ne veux plus se revend à l’échoppe la moitié de son prix.</p>
     <div class="hand">${slots}</div>
     ${byCat}`;
 }
 // Après un achat, on garde la position dans la liste et le bouton actif (clavier)
 function renderShop(from = null) {
   const body = $('shop-body'), top = body.scrollTop;
-  const key = from && ['buy', 'equip', 'unequip'].find((k) => from.dataset[k] !== undefined);
+  const key = from && ['buy', 'equip', 'unequip', 'sell'].find((k) => from.dataset[k] !== undefined);
   const id = key && from.dataset[key];
   body.innerHTML = shopHTML();
   body.scrollTop = top;
   if (!key) return;
-  const card = key === 'unequip' ? null : body.querySelector(`[data-buy="${id}"], [data-equip="${id}"]`)?.closest('.die-card');
+  const card = key === 'unequip' ? null : body.querySelector(`[data-buy="${id}"], [data-equip="${id}"], [data-sell="${id}"]`)?.closest('.die-card');
   const next = [body.querySelector(`[data-${key}="${id}"]`), card && card.querySelector('button:not(:disabled)')].find((b) => b && !b.disabled);
   if (next) next.focus({ preventScroll: true });
 }
@@ -3451,8 +3456,23 @@ $('shop-body').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b || b.disabled) return;
   initAudio();
-  const { buy, equip, unequip } = b.dataset;
-  if (buy) {
+  const { buy, equip, unequip, sell } = b.dataset;
+  if (sell) {
+    // revente en deux temps, pour qu’un toucher maladroit ne vide pas l’étagère
+    if (!b.dataset.armed) {
+      b.dataset.armed = '1';
+      b.textContent = `Sûr ? Revendre · ${resale(sell)}`;
+      b.classList.add('armed');
+      setTimeout(() => { if (b.isConnected) renderShop(b); }, 4000);
+      return;
+    }
+    if (!wallet.owned[sell]) return;
+    wallet.owned[sell]--;
+    if (!wallet.owned[sell]) delete wallet.owned[sell];
+    if (inHand(sell) > (wallet.owned[sell] || 0)) wallet.hand.splice(wallet.hand.lastIndexOf(sell), 1);
+    wallet.purse += resale(sell);
+    sfxCoins(0.5);
+  } else if (buy) {
     const k = DIE_KINDS[buy];
     if (wallet.purse < k.price || (wallet.owned[buy] || 0) >= (k.max || HAND_SIZE)) return;
     wallet.purse -= k.price;
