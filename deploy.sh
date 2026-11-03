@@ -9,9 +9,10 @@ DOMAIN=farkle.jibhey.fr
 ROOT=/srv/sites/$DOMAIN
 SITE=/etc/caddy/sites/farkle.caddy
 
-# 1. Fichiers du jeu (sans les prises audio d’origine, inutilisées)
+# 1. Fichiers du jeu (sans les prises audio d’origine, inutilisées), avec ce qui le rend installable :
+#    manifeste, icônes et service worker (sw.js)
 ssh "$HOST" "mkdir -p $ROOT"
-rsync -az --delete --exclude 'originaux/' --exclude '.DS_Store' index.html audio "$HOST:$ROOT/"
+rsync -az --delete --exclude 'originaux/' --exclude '.DS_Store' index.html manifest.webmanifest sw.js icons audio "$HOST:$ROOT/"
 
 # 2. Le code du jeu est écrit dans index.html : la CSP l’autorise par son empreinte (sha256),
 #    à recalculer à chaque publication puisqu’elle change dès que le code change.
@@ -24,10 +25,11 @@ EOF
 )
 
 # 3. Site Caddy (HTTPS automatique). En cas de configuration invalide, on retire le site et on s’arrête.
+#    connect-src : le service worker va chercher lui-même les bibliothèques et les polices pour les garder hors ligne.
 ssh "$HOST" "sudo tee $SITE > /dev/null" <<EOF
 $DOMAIN {
 	import security
-	header Content-Security-Policy "default-src 'self'; script-src 'self' ${HASHES}https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self' ${HASHES}https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
 
 	encode zstd gzip
 	root * $ROOT

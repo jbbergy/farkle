@@ -4,9 +4,18 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Farkle — Dés à la chandelle</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
+<!-- installable comme une application, jouable hors connexion (voir sw.js) -->
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icons/icone.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icons/icone-apple.png" />
+<meta name="theme-color" content="#050302" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Farkle" />
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=UnifrakturMaguntia&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=UnifrakturMaguntia&display=swap" rel="stylesheet" crossorigin="anonymous" />
 <style>
   :root {
     --ui: 1; /* échelle de l’interface (réglage « Taille du texte ») */
@@ -4143,6 +4152,9 @@ frame();
 const loadingEl = $('loading');
 requestAnimationFrame(() => loadingEl.classList.add('done'));
 setTimeout(() => loadingEl.remove(), 1200);
+
+// Application installable et jeu hors connexion : le service worker garde la page, ses bibliothèques et ses sons
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { /* sans service worker, le jeu marche en ligne */ });
 
 // Accès console pour le débogage
 window.FarkleDebug = {
