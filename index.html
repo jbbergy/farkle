@@ -2428,11 +2428,19 @@ function rulesHTML() {
     <h3>Un exemple</h3>
     <div class="example">Tu lances ${diceIcons(1, 3, 5, 3, 6, 3)}<br>
       Le 1 (100), le 5 (50) et les trois 3 (300) font <b>450</b> dans le pot. Tu peux garder ces 450 points tout de suite,
-      ou relancer le dernier dé : un 1 ou un 5 (une chance sur trois) ajoute des points et te rend les six dés, sinon c’est le Farkle et les 450 sont perdus.</div>
+      ou relancer le dernier dé : un 1 ou un 5 (une chance sur trois) ajoute des points et te rend les six dés (ce sont les dés brûlants, juste en dessous),
+      sinon c’est le Farkle et les 450 sont perdus.</div>
+
+    <h3>Les dés brûlants</h3>
+    <p>Quand <b>tes six dés</b> ont tous rapporté et sont mis de côté, ce sont des <b>dés brûlants</b> : tu reprends les six dés,
+      et le pot du tour reste à toi. Tu choisis alors de <b>relancer les six</b> pour grossir encore le pot, ou de <b>garder</b> tes points.
+      Si tu relances et que c’est un Farkle, tout le pot du tour est perdu, comme d’habitude.</p>
+    <div class="example">Tu lances ${diceIcons(1, 1, 1, 5, 2, 4)}<br>
+      Tu mets de côté les trois 1 et le 5 : <b>1050</b> dans le pot. Tu relances les deux derniers dés et tu sors ${diceIcons(1, 5)} :
+      150 de plus. Tes six dés sont de côté : <b>dés brûlants</b> ! Tu reprends les six dés avec <b>1200</b> dans le pot.</div>
 
     <h3>Bon à savoir</h3>
     <p>Une combinaison doit sortir d’un <b>même lancer</b> : deux 4 de ce lancer et un 4 du suivant ne font pas un brelan.</p>
-    <p>Si tes six dés finissent de côté, ce sont des <b>dés brûlants</b> : tu relances les six en gardant le pot.</p>
 
     <h3>Groschens et dés spéciaux</h3>
     <p>Avant la partie, choisis ta <b>mise</b> : ${CONFIG.aiLower} en met autant, et le gagnant empoche les deux.
