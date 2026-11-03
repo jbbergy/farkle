@@ -306,6 +306,7 @@
   .purse-badge { order: 2; }
   .menu-stakes { order: 3; }
   .menu-lengths { order: 4; }
+  .resume-card { order: 3; }
   .menu-hand { order: 5; }
   @container (min-width: 30rem) {
     .menu-grid { flex-direction: row; gap: 24px; }
@@ -316,6 +317,17 @@
   .tavern-line .who { font-style: normal; font-family: var(--f-sc); color: var(--ink-soft); white-space: nowrap; }
   .tavern-line.say #tavern-say { display: inline-block; animation: say-in 0.45s ease; }
   @keyframes say-in { from { opacity: 0; transform: translateY(5px); } }
+  /* partie interrompue, à reprendre */
+  .resume-card {
+    display: grid; gap: 4px; justify-items: center; padding: 8px 12px 10px; text-align: center;
+    background: rgba(142, 30, 20, 0.08); border: 2px solid rgba(142, 30, 20, 0.55); border-radius: 8px;
+  }
+  .resume-card[hidden] { display: none; }
+  .modal .resume-card p { margin: 0; text-align: center; }
+  .resume-score { font-family: var(--f-sc); font-size: 1.2rem; }
+  .resume-score b { font-weight: normal; color: var(--red); }
+  .resume-info { font-size: 0.98rem; line-height: 1.3; }
+  .resume-card .btn { margin-top: 4px; min-width: 11em; }
   /* la bourse */
   .purse-badge {
     display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 14px;
@@ -575,6 +587,12 @@
               <path d="M26 15.4l2.4 5M26 15.4l-0.6 5.4" fill="none" stroke="#e0b866" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
             <div class="purse-text"><span class="purse-label">Ta bourse</span><span class="purse-sum"><b class="purse-amount">100</b> groschens</span></div>
+          </div>
+          <div class="resume-card" id="resume-card" hidden>
+            <div class="field-label" data-opt="5">Partie en cours</div>
+            <p class="resume-score" id="resume-score"></p>
+            <p class="resume-info" id="resume-info" data-opt="5"></p>
+            <button class="btn btn-wax" id="btn-resume">Reprendre la partie</button>
           </div>
           <div class="menu-section menu-hand">
             <div class="field-label" id="hand-label">Tes dés</div>
@@ -1699,7 +1717,7 @@ function setKind(d, id) {
 // Les dés spéciaux de chacun sur son jeu : la main du joueur, celle tirée au hasard pour le Tavernier
 // (sans mise, tout le monde joue avec des dés ordinaires)
 function equipDice(side) {
-  const hand = !game.pot ? [] : side === 0 ? wallet.hand : game.tavernHand;
+  const hand = !game.pot ? [] : side === 0 ? game.playerHand : game.tavernHand;
   diceSets[side].forEach((d, i) => setKind(d, hand[i] || null));
 }
 // Le Tavernier sort quelques dés spéciaux au hasard, d’autant plus que la mise est forte
@@ -1996,7 +2014,7 @@ function formatParts(parts) {
 // ════════════════════════════════════════════════════════════════════
 //  8. DÉROULEMENT D’UNE PARTIE
 // ════════════════════════════════════════════════════════════════════
-const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, token: 0, clickable: new Set(), aiStatus: '', pot: 0, lastResult: null, tavernHand: [] };
+const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, token: 0, clickable: new Set(), aiStatus: '', pot: 0, lastResult: null, playerHand: [], tavernHand: [] };
 
 // ─── Bourse : groschens et dés spéciaux du joueur (mémorisés dans le navigateur) ───
 // Chacun mise autant que l’autre ; le gagnant empoche le pot. Une bourse vide est renflouée par le Tavernier.
@@ -2014,6 +2032,28 @@ try {
 } catch { /* stockage indisponible : bourse de départ */ }
 if (wallet.purse < MIN_STAKE) wallet.purse += CREDIT;
 function inHand(id) { return wallet.hand.filter((h) => h === id).length; }
+
+// ─── Partie en cours : gardée à chaque début de tour, pour la reprendre si la page est rechargée ou fermée ───
+// (la mise est déjà sortie de la bourse ; seul le tour qui était en train d’être joué est perdu)
+const MATCH_KEY = 'farkle.partie';
+function saveMatch() {
+  const m = { target: RULES.target, pot: game.pot, scores: game.scores, current: game.current, playerHand: game.playerHand, tavernHand: game.tavernHand };
+  try { localStorage.setItem(MATCH_KEY, JSON.stringify(m)); } catch { /* stockage indisponible */ }
+}
+function clearMatch() {
+  pendingMatch = null;
+  try { localStorage.removeItem(MATCH_KEY); } catch { /* stockage indisponible */ }
+}
+let pendingMatch = null;
+try {
+  const m = JSON.parse(localStorage.getItem(MATCH_KEY));
+  const hand = (h) => (Array.isArray(h) ? h.filter((id) => DIE_KINDS[id]).slice(0, HAND_SIZE) : []);
+  if (m && Array.isArray(m.scores) && m.scores.length === 2 && validTarget(m.target)) {
+    pendingMatch = { target: m.target, pot: Math.max(0, m.pot | 0), scores: m.scores.map((v) => Math.max(0, v | 0)),
+      current: m.current === 1 ? 1 : 0, playerHand: hand(m.playerHand), tavernHand: hand(m.tavernHand) };
+  }
+} catch { /* rien à reprendre */ }
+function validTarget(t) { return [2000, 4000, 8000].includes(t); }
 function saveWallet() {
   try { localStorage.setItem('farkle.bourse', JSON.stringify(wallet)); } catch { /* stockage indisponible */ }
 }
@@ -2060,26 +2100,37 @@ function toggleDie(d) {
   updateUI();
 }
 
-function startGame() {
-  // la mise sort de la bourse, le Tavernier en met autant ; trop peu de groschens : retour au menu
-  if (wallet.purse < RULES.stake) { backToMenu(); return; }
-  wallet.purse -= RULES.stake;
-  saveWallet();
-  game.pot = RULES.stake * 2;
+// Nouvelle partie, ou reprise de la partie interrompue (`resume`, voir saveMatch)
+function startGame(resume = null) {
+  if (resume) {
+    RULES.target = resume.target;
+    game.pot = resume.pot; game.scores = resume.scores.slice();
+    game.playerHand = resume.playerHand; game.tavernHand = resume.tavernHand;
+  } else {
+    // la mise sort de la bourse, le Tavernier en met autant ; trop peu de groschens : retour au menu
+    if (wallet.purse < RULES.stake) { backToMenu(); return; }
+    wallet.purse -= RULES.stake;
+    saveWallet();
+    game.pot = RULES.stake * 2;
+    game.scores = [0, 0];
+    game.playerHand = game.pot ? wallet.hand.slice() : [];
+    game.tavernHand = game.pot ? pickTavernHand(RULES.stake) : [];
+  }
+  pendingMatch = null;
   game.token++;
   replayJob = null;
-  game.scores = [0, 0]; shownScores[0] = shownScores[1] = 0;
-  el.scores.forEach((s) => { s.textContent = 0; }); // l’affichage animé ne bouge qu’au prochain changement de score
+  shownScores[0] = game.scores[0]; shownScores[1] = game.scores[1];
+  el.scores.forEach((s, i) => { s.textContent = game.scores[i]; }); // l’affichage animé ne bouge qu’au prochain changement de score
   $('target-label').textContent = RULES.target;
   $('pot-label').textContent = game.pot ? `Pot : ${game.pot} groschens` : 'Pour l’honneur';
-  game.tavernHand = game.pot ? pickTavernHand(RULES.stake) : [];
   equipDice(0); equipDice(1);
   $('menu').classList.add('hidden'); $('gameover').classList.add('hidden'); $('hud').classList.remove('hidden');
   document.body.dataset.screen = 'game';
-  beginTurn(0);
+  beginTurn(resume ? resume.current : 0);
 }
 function beginTurn(p) {
   game.current = p; game.turnScore = 0; game.phase = 'idle'; game.clickable = new Set(); game.aiStatus = '';
+  saveMatch();
   // les dés de l’autre retournent sur son tapis ; ceux du lanceur partiront de là où ils sont
   // (ils gardent leur case jusqu’au lancer, pour suivre leur tapis si l’écran tourne)
   useSet(p);
@@ -2177,6 +2228,7 @@ function gameOver(winner) {
     : winner === 0 ? `Tu empoches le pot : ${game.pot} groschens.` : `Ta mise de ${game.pot / 2} groschens est perdue.`;
   if (winner === 0) wallet.purse += game.pot;
   game.lastResult = (game.pot ? '' : 'honneur-') + (winner === 0 ? 'win' : 'loss');
+  clearMatch();
   if (wallet.purse < MIN_STAKE) {
     wallet.purse += CREDIT;
     game.lastResult = 'credit';
@@ -2485,6 +2537,7 @@ const STAKE_SAY = {
   100: 'Cent groschens… Ce soir, l’un de nous deux rentre les poches vides.',
 };
 function greeting() {
+  if (pendingMatch) return 'Tu reviens finir notre partie ? Je n’ai touché à rien.';
   if (game.lastResult === 'credit') return `Ta bourse sonnait creux : je t’ai glissé ${CREDIT} groschens. N’en parle à personne.`;
   if (game.lastResult === 'win') return 'Tu m’as plumé, chenapan. Tu m’accordes une revanche ?';
   if (game.lastResult === 'loss') return 'Merci pour les groschens, l’ami. On remet ça ?';
@@ -2534,6 +2587,14 @@ function renderMenu() {
   const names = hand.map((id) => DIE_KINDS[id].name), plain = HAND_SIZE - names.length;
   const desc = names.length ? `${names.join(', ')}${plain ? ` et ${plain} dé${plain > 1 ? 's' : ''} ordinaire${plain > 1 ? 's' : ''}` : ''}` : 'Six dés ordinaires';
   $('btn-shop').setAttribute('aria-label', `${desc}. Ouvrir l’échoppe aux dés.`);
+  // partie interrompue : on propose de la reprendre ; une nouvelle mise l’abandonne (avec sa mise)
+  const m = pendingMatch;
+  $('resume-card').hidden = !m;
+  $('btn-start').classList.toggle('btn-wax', !m); $('btn-start').classList.toggle('btn-wood', !!m);
+  if (m) {
+    $('resume-score').innerHTML = `Toi <b>${m.scores[0]}</b> · Tavernier <b>${m.scores[1]}</b>`;
+    $('resume-info').textContent = `En ${m.target} points, ${m.pot ? `pot de ${m.pot} groschens` : 'pour l’honneur'}. Une nouvelle partie l’abandonne.`;
+  }
   showPurse();
   fitModal($('menu').querySelector('.modal'));
 }
@@ -3316,6 +3377,7 @@ document.querySelector('.length-stepper').addEventListener('click', (e) => {
   if (next) chooseLength(next.target);
 });
 $('btn-start').addEventListener('click', () => { initAudio(); startGame(); });
+$('btn-resume').addEventListener('click', () => { if (pendingMatch) { initAudio(); startGame(pendingMatch); } });
 $('btn-again').addEventListener('click', () => { initAudio(); startGame(); });
 function backToMenu() {
   game.token++; game.phase = 'menu'; replayJob = null;
