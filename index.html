@@ -137,8 +137,6 @@
   }
   /* sur un écran très bas, seul le contenu défile : le parchemin reste en place */
   .settings-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(91, 63, 37, 0.6) transparent; }
-  #settings-panel .rules-link { display: none; width: 100%; margin: 8px 0 4px; }
-  html.narrow body[data-screen="game"] #settings-panel .rules-link { display: block; }
   #settings-panel.hidden { opacity: 0; transform: translateY(-6px); visibility: hidden; pointer-events: none; transition: opacity 0.2s, transform 0.2s, visibility 0s 0.2s; }
   #settings-panel .panel-kicker { font-family: var(--f-sc); color: var(--ink-soft); letter-spacing: 0.08em; font-size: 0.95rem; margin: 2px 0; }
   #settings-panel .choice { margin: 4px 0 10px; }
@@ -183,16 +181,6 @@
   #toast[data-kind="farkle"] .t-main { color: #e2482f; text-shadow: 0 0 26px rgba(220, 40, 20, 0.6), 0 2px 0 #2a0703, 0 8px 28px #000; }
   #toast[data-kind="hot"] .t-main { color: #ffc35a; }
   #toast[data-kind="bank"] .t-main { color: #f6d27a; }
-
-  /* Paroles des clients de la taverne (sous-titres) */
-  #talk {
-    position: fixed; z-index: 6; left: 50%; top: 12px; transform: translateX(-50%); width: max-content; max-width: min(34rem, 92vw);
-    text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.4s;
-    font-style: italic; font-size: 1.1rem; line-height: 1.35; color: #f2e2bd;
-    text-shadow: 0 1px 2px #000, 0 0 12px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
-  }
-  #talk.show { opacity: 1; }
-  #talk .who { display: block; font-family: var(--f-sc); font-style: normal; font-size: 0.85rem; letter-spacing: 0.06em; color: #e0b96f; }
 
   /* ───────── Fenêtres ───────── */
   .overlay {
@@ -309,9 +297,9 @@
     #actions { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); width: auto; max-width: 560px; margin: 0 auto; padding: 7px 10px 9px; }
     .buttons { gap: 6px; margin-top: 6px; }
     #corner { top: calc(8px + env(safe-area-inset-top)); right: 8px; }
-    /* écran étroit (en rem) : un seul sceau en partie, les règles passent dans les réglages */
+    /* écran étroit (en rem) : les deux sceaux s’empilent à droite pour laisser la largeur aux scores */
     html.narrow #scores { right: calc(16px + 2.75rem); }
-    html.narrow #btn-rules { display: none; }
+    html.narrow #corner { flex-direction: column; gap: 6px; }
   }
   /* ───────── Téléphone en paysage : sceaux et scores à gauche, commandes à droite ───────── */
   @media (orientation: landscape) and (max-height: 560px) {
@@ -403,13 +391,11 @@
       <label class="toggle"><span>Bruitages</span><input type="checkbox" data-bus="sfx" checked /></label>
       <label class="toggle"><span>Voix de la taverne</span><input type="checkbox" data-bus="voices" checked /></label>
       <div class="try-voices">Essayer : <button type="button" data-try="anecdote">une anecdote</button><button type="button" data-try="reaction">une réaction</button></div>
-      <button type="button" class="btn btn-wood rules-link" id="btn-settings-rules">Règles du jeu</button>
     </div>
   </div>
 </div>
 
 <div id="toast" aria-live="polite"><div class="t-main"></div><div class="t-sub"></div></div>
-<div id="talk" aria-live="polite"><span class="who"></span><span class="line"></span></div>
 
 <div id="menu" class="overlay">
   <div class="parchment modal">
@@ -1287,7 +1273,6 @@ function applyLayout() {
   }
   renderer.setSize(innerWidth, innerHeight);
   fitCamera();
-  placeTalk();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2271,7 +2256,7 @@ function sfxDefeat() { duckMusic(3); if (!playSample('defaite', { gain: 0.7 })) 
 
 // ─── Voix de la taverne (ElevenLabs, dossier audio/voix/) ───
 // Les clients racontent une anecdote de temps en temps et réagissent aux coups marquants.
-// Chacun a sa place dans la salle (panoramique gauche/droite) ; leurs paroles s’affichent en sous-titre.
+// Chacun a sa place dans la salle (panoramique gauche/droite). Les paroles ne sont pas affichées à l’écran.
 const PATRONS = {
   vieux: { name: 'Le vieil Ota', pan: -0.55 },
   voyageur: { name: 'Un voyageur', pan: 0.6 },
@@ -2280,7 +2265,7 @@ const PATRONS = {
   servante: { name: 'Bětka, la servante', pan: 0.1 },
   commere: { name: 'La mère Ludmila', pan: -0.7 },
 };
-// fichier, client, texte du sous-titre
+// fichier, client, texte prononcé (pour mémoire)
 const TALK = {
   anecdote: [
     ['anecdote_1', 'vieux', 'De mon temps, on jouait aux dés avec des osselets de mouton, et le perdant payait la bière de toute la compagnie. Un soir, le sergent a perdu trois fois de suite… Il a vendu son casque pour payer. Il a fait toute la campagne suivante avec une marmite sur la tête !'],
@@ -2369,7 +2354,7 @@ const VOICE_MIX = {
   reaction: { gain: 0.95, dry: 1, wet: 0.12, lowpass: 0, duck: 0.45 },
   anecdote: { gain: 0.5, dry: 0.65, wet: 0.35, lowpass: 4200, duck: 0.75 },
 };
-function say([id, who, text], anecdote = false) {
+function say([id, who], anecdote = false) {
   const buf = talk.buffers[id];
   if (!buf || !audio.ctx || !audio.on.voices) return false;
   stopTalk();
@@ -2394,9 +2379,8 @@ function say([id, who, text], anecdote = false) {
   src.start();
   talk.current = { src, g, anecdote };
   talk.busyUntil = performance.now() + buf.duration * 1000;
-  src.onended = () => { if (talk.current && talk.current.src === src) { talk.current = null; hideCaption(); } };
+  src.onended = () => { if (talk.current && talk.current.src === src) talk.current = null; };
   duckMusic(buf.duration, mix.duck);
-  showCaption(PATRONS[who].name, text);
   return true;
 }
 function stopTalk() {
@@ -2406,7 +2390,6 @@ function stopTalk() {
   try { src.stop(t + 0.4); } catch { /* déjà arrêtée */ }
   talk.current = null;
   talk.busyUntil = 0;
-  hideCaption();
 }
 // Réaction d’un client à un coup. Un Farkle et la fin de la partie font toujours réagir quelqu’un ;
 // les autres coups seulement de temps en temps (`chance`), jamais deux fois de suite.
@@ -2437,19 +2420,6 @@ setInterval(() => {
   if (say(pickLine('anecdote'), true)) talk.nextAnecdote = now + rand(100000, 180000);
 }, 1000);
 
-function showCaption(who, text) {
-  const el = $('talk');
-  el.querySelector('.who').textContent = who;
-  el.querySelector('.line').textContent = `« ${text} »`;
-  el.classList.add('show');
-}
-function hideCaption() { $('talk').classList.remove('show'); }
-// les sous-titres se placent en haut de la zone libre, au-dessus du plateau
-function placeTalk() {
-  const fr = freeRect(), el = $('talk');
-  el.style.left = fr ? `${(fr.l + fr.r) / 2}px` : '50%';
-  el.style.top = fr ? `${fr.t + 4}px` : '12px';
-}
 
 // ════════════════════════════════════════════════════════════════════
 //  12. ENTRÉES (souris / tactile / clavier)
@@ -2669,7 +2639,6 @@ $('btn-to-menu').addEventListener('click', () => {
 });
 $('btn-menu-rules').addEventListener('click', () => openRules('menu'));
 $('btn-rules').addEventListener('click', () => openRules('game'));
-$('btn-settings-rules').addEventListener('click', () => { toggleSettings(false); openRules('game'); });
 $('btn-rules-close').addEventListener('click', closeRules);
 $('rules').addEventListener('click', (e) => { if (e.target.id === 'rules') closeRules(); });
 
