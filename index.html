@@ -2887,6 +2887,16 @@ const TALK = {
     ['anecdote_5', 'ivrogne', 'Moi, j’ai vu un chevalier boire dix chopes sans s’asseoir ! Bon… à la onzième, il s’est assis. Dans l’auge des cochons.'],
     ['anecdote_6', 'voyageur', 'J’ai traversé trois royaumes pour arriver jusqu’ici. Et partout, c’est la même chose : la bière est tiède, les routes sont boueuses… et quelqu’un perd sa chemise aux dés.'],
     ['anecdote_7', 'commere', 'Le curé cherche encore qui a remplacé le vin de messe par de la piquette. Il a longuement regardé le sacristain… et le sacristain, lui, regardait ses chaussures.'],
+    ['anecdote_8', 'vieux', 'Il y a quarante hivers, le gel a pris la rivière si fort qu’on a tenu la foire dessus. Le meunier y avait installé son étal de saucisses… Au dégel, l’étal est parti au fil de l’eau vers la ville, avec le meunier assis dessus… qui vendait encore !'],
+    ['anecdote_9', 'vieux', 'Mon père disait : un dé qui roule par terre, c’est le diable qui veut jouer. Alors on le laissait là jusqu’au matin. Un soir, il en manquait trois… Et le chien du voisin, lui, avait l’air très content.'],
+    ['anecdote_10', 'servante', 'Le seigneur est passé ce matin, il voulait goûter notre bière. Il en a bu une gorgée, il a fait une de ces grimaces… et puis il en a commandé un tonneau entier. Allez comprendre les nobles.'],
+    ['anecdote_11', 'servante', 'Il y a un moine qui vient tous les jeudis pour prêcher contre la boisson. Il prêche jusqu’à la fermeture… et il repart toujours en chantant.'],
+    ['anecdote_12', 'jeune', 'Mon maître dit qu’un jour, je serai le meilleur forgeron du pays. Pour l’instant, j’ai surtout réussi à ferrer un cheval… à l’envers. Il marche très bien, remarquez. Mais il recule quand on lui dit d’avancer.'],
+    ['anecdote_13', 'jeune', 'On dit qu’un trésor est enterré sous le vieux chêne, près du moulin. Hier soir, on était six à creuser… Pas de trésor. Mais on a trouvé le bailli, qui creusait déjà de l’autre côté, avec sa lanterne éteinte !'],
+    ['anecdote_14', 'ivrogne', 'La bière d’ici, c’est la meilleure du royaume ! Enfin… c’est la seule que je connaisse. Mais c’est la meilleure !'],
+    ['anecdote_15', 'ivrogne', 'Hier, j’ai parié avec le charron que je rentrerais chez moi sans tomber dans le fossé. Et j’ai gagné ! Bon… je suis tombé dans le puits. Mais pas dans le fossé !'],
+    ['anecdote_16', 'voyageur', 'Dans une grande ville, j’ai vu une horloge où de petits hommes de bois sortent à chaque heure, saluent… et rentrent dormir. Ici, c’est pareil : à minuit, Kuba se lève, salue… et retourne dormir sous la table.'],
+    ['anecdote_17', 'commere', 'La fille du meunier a trois prétendants : le boulanger, le forgeron et le fils du tonnelier. Elle a promis d’épouser celui qui battrait le Tavernier aux dés… Ça fait deux ans qu’elle attend.'],
   ],
   farkle_toi: [
     ['farkle_toi_1', 'ivrogne', 'Rien du tout ! Les dés t’ont joué un sale tour !'],
@@ -2945,8 +2955,10 @@ const TALK = {
 };
 const talk = { buffers: {}, bags: {}, current: null, busyUntil: 0, lastReaction: 0, nextAnecdote: 0, ready: null };
 
+// Les réactions sont chargées d’avance (elles doivent partir tout de suite) ; les anecdotes, longues,
+// seulement au moment de les dire, puis oubliées : moins de mémoire sur téléphone (voir playAnecdote)
 async function loadVoices() {
-  const ids = Object.values(TALK).flat().map((l) => l[0]);
+  const ids = Object.entries(TALK).filter(([cat]) => cat !== 'anecdote').flatMap(([, lines]) => lines.map((l) => l[0]));
   await Promise.all(ids.map(async (id) => {
     const buf = await loadAudio(`audio/voix/${id}.mp3`); // fichier absent : la réplique ne sera simplement pas dite
     if (buf) talk.buffers[id] = buf;
@@ -2991,9 +3003,23 @@ function say([id, who], anecdote = false) {
   src.start();
   talk.current = { src, g, anecdote };
   talk.busyUntil = performance.now() + buf.duration * 1000;
-  src.onended = () => { if (talk.current && talk.current.src === src) talk.current = null; };
+  src.onended = () => {
+    if (talk.current && talk.current.src === src) talk.current = null;
+    if (anecdote) delete talk.buffers[id];
+  };
   duckMusic(buf.duration, mix.duck);
   return true;
+}
+// Charge l’anecdote tirée puis la dit, sauf si une réaction a commencé entre-temps (`force` : bouton « Essayer »)
+async function playAnecdote(force = false) {
+  const line = pickLine('anecdote'), [id] = line;
+  if (!talk.buffers[id]) {
+    const buf = await loadAudio(`audio/voix/${id}.mp3`);
+    if (!buf) return false;
+    talk.buffers[id] = buf;
+  }
+  if (!force && performance.now() < talk.busyUntil) { delete talk.buffers[id]; return false; }
+  return say(line, true);
 }
 function stopTalk() {
   if (!talk.current) return;
@@ -3029,7 +3055,8 @@ setInterval(() => {
   if (game.phase === 'menu' || game.phase === 'over') { talk.nextAnecdote = 0; return; }
   if (!talk.nextAnecdote) talk.nextAnecdote = now + rand(40000, 75000);
   if (now < talk.nextAnecdote || now < talk.busyUntil + 3000 || now - talk.lastReaction < 8000) return;
-  if (say(pickLine('anecdote'), true)) talk.nextAnecdote = now + rand(100000, 180000);
+  talk.nextAnecdote = now + rand(100000, 180000);
+  playAnecdote();
 }, 1000);
 
 
@@ -3365,7 +3392,7 @@ settingsPanel.addEventListener('click', async (e) => {
   initAudio();
   if (!audio.on.voices) { setSound('voices', true); syncSoundUI(); }
   await talk.ready;
-  if (b.dataset.try === 'anecdote') say(pickLine('anecdote'), true);
+  if (b.dataset.try === 'anecdote') playAnecdote(true);
   else say(pickLine(REACTION_CATS[(Math.random() * REACTION_CATS.length) | 0]));
 });
 
