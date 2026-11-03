@@ -1851,7 +1851,7 @@ function drawFace(w) {
 const SIM_STEP = 1 / 120;
 let sim = null;
 async function simulateThrow(list) {
-  const job = { list, stableTime: 0, elapsed: 0, nudges: 0, relaunches: 0 }, frames = [], t0 = performance.now();
+  const job = { list, stableTime: 0, elapsed: 0, nudges: 0 }, frames = [], t0 = performance.now();
   sim = { time: 0, sounds: [] };
   for (const d of list) d.lastSound = -1;
   let done = false, slice = performance.now(), work = 0;
@@ -1899,19 +1899,19 @@ function outOfPlay(d) {
   const p = d.body.position, { halfW, halfD } = CONFIG.play;
   return Math.abs(p.x) > halfW - 0.2 || Math.abs(p.z) > halfD - 0.2 || p.y < 0.2;
 }
-// Dé cassé : posé de travers contre un autre dé ou un bord, sans face franche vers le haut
-const cocked = (d) => !d.entering && d.body.position.y < 0.9 && topFace(d.body.quaternion).dot < 0.94;
 function nudge(d) {
   const b = d.body;
   b.wakeUp();
-  if (d.entering || outOfPlay(d) || cocked(d)) {
+  if (d.entering || outOfPlay(d)) {
     b.position.set(rand(-3, 3), 3.5, rand(-2, 2));
     b.velocity.set(rand(-4, 4), -2, rand(-3, 3));
     b.collisionFilterMask = MASK_ALL; d.entering = null;
+    b.angularVelocity.set(rand(-12, 12), rand(-12, 12), rand(-12, 12));
   } else {
-    b.velocity.set(-b.position.x * 0.4 + rand(-1, 1), rand(4, 6), -b.position.z * 0.4 + rand(-1, 1));
+    // pichenette, assez appuyée pour qu’un dé cassé ne retombe pas de travers
+    b.velocity.set(-b.position.x * 0.4 + rand(-1, 1), rand(5.5, 7.5), -b.position.z * 0.4 + rand(-1, 1));
+    b.angularVelocity.set(rand(-15, 15), rand(-15, 15), rand(-15, 15));
   }
-  b.angularVelocity.set(rand(-12, 12), rand(-12, 12), rand(-12, 12));
 }
 // Un pas de surveillance du lancer en cours de calcul : vrai quand tous les dés reposent à plat sur le plateau
 function settleStep(job, dt) {
@@ -1920,19 +1920,12 @@ function settleStep(job, dt) {
   for (const d of job.list) {
     if (d.entering === 'R' && d.body.position.x < halfW - 0.95) { d.body.collisionFilterMask = MASK_ALL; d.entering = null; }
     else if (d.entering === 'L' && d.body.position.x > -halfW + 0.95) { d.body.collisionFilterMask = MASK_ALL; d.entering = null; }
-    // un dé cassé qui ne bouge presque plus est relancé tout de suite, sans attendre que les autres s’arrêtent
-    const slow = d.body.velocity.lengthSquared() < 0.5 && d.body.angularVelocity.lengthSquared() < 1.5;
-    d.cockedTime = slow && cocked(d) ? (d.cockedTime || 0) + dt : 0;
-    if (d.cockedTime > 0.25 && job.relaunches < 6) {
-      job.relaunches++; d.cockedTime = 0; job.stableTime = 0; job.elapsed = Math.min(job.elapsed, 4);
-      nudge(d);
-    }
   }
   const moving = job.list.some((d) => d.body.sleepState !== CANNON.Body.SLEEPING &&
     (d.body.velocity.lengthSquared() > 0.02 || d.body.angularVelocity.lengthSquared() > 0.04));
   job.stableTime = moving ? 0 : job.stableTime + dt;
   if (job.stableTime < 0.22 && job.elapsed < 7) return false;
-  // dé sorti, resté hors du plateau ou cassé → relancé d’en haut ; dé perché sur un autre → petite pichenette
+  // dé sorti, encore « en vol », ou cassé (appuyé sur un autre) → petite pichenette
   const bad = job.list.filter((d) => d.entering || outOfPlay(d) || d.body.position.y > 0.9 || topFace(d.body.quaternion).dot < 0.94);
   if (bad.length && job.nudges < 4) {
     job.nudges++; job.stableTime = 0; job.elapsed = Math.min(job.elapsed, 4);
