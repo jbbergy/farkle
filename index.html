@@ -444,13 +444,19 @@
   .btn-start { font-size: 1.3rem; }
   .modal-actions .btn-start { min-width: 11em; }
   .menu-modal .short { display: none; }
+  /* Partie en cours : le menu se replie sur elle (« Nouvelle partie » déplie les réglages d’une nouvelle partie) */
+  #menu[data-fold="folded"] :is(.menu-right, .menu-hand, #btn-menu-shop) { display: none !important; }
+  #menu[data-fold="folded"] .menu-left { max-width: 28rem; margin-inline: auto; }
+  #menu[data-fold="folded"] .menu-grid { grid-template-columns: minmax(0, 1fr); }
+  #menu[data-fold="fresh"] .resume-card { display: none; }
+  #btn-menu-back[hidden], #btn-menu-rules[hidden] { display: none; }
   /* téléphone en paysage : l’échoppe passe dans la rangée des boutons (voir plus bas) */
   #btn-menu-shop { display: none; }
   @container (max-width: 22rem) {
     /* « Règles du jeu » devient un « ? » à côté de la mise : une ligne de boutons au lieu de deux */
     .menu-modal .modal-actions { flex-wrap: nowrap; gap: 8px; }
     .modal-actions .btn-start { flex: 1 1 auto; min-width: 0; font-size: 1.15rem; text-wrap: balance; }
-    .modal-actions #btn-menu-rules { flex: none; min-width: 0; width: 3.2rem; padding-inline: 0; font-size: 1.5rem; }
+    .modal-actions :is(#btn-menu-rules, #btn-menu-back) { flex: none; min-width: 0; width: 3.2rem; padding-inline: 0; font-size: 1.5rem; }
     .menu-modal .long { display: none; }
     .menu-modal .short { display: inline; }
     .stakes { gap: 5px; }
@@ -551,6 +557,9 @@
     .menu-opponent { grid-column: 1; grid-row: 4; }
     .menu-stakes { grid-column: 2; grid-row: 2 / 4; }
     .menu-lengths { grid-column: 2; grid-row: 4; }
+    /* menu replié sur une partie en cours : la bourse et la partie côte à côte */
+    #menu[data-fold="folded"] .menu-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+    #menu[data-fold="folded"] .resume-card { grid-column: 2; grid-row: 2; }
     .hand-go .word { display: none; }
     .hand-go { font-size: 1.5rem; line-height: 1; }
     .menu-grid, .menu-left, .menu-right { gap: 8px; }
@@ -703,6 +712,7 @@
     <div class="modal-actions">
       <button class="btn btn-wax btn-start" id="btn-start">Miser 25 groschens</button>
       <button class="btn btn-wood" id="btn-menu-shop">Échoppe</button>
+      <button class="btn btn-wood" id="btn-menu-back" aria-label="Retour à la partie en cours" hidden><span class="long">Retour</span><span class="short" aria-hidden="true">‹</span></button>
       <button class="btn btn-wood" id="btn-menu-rules" aria-label="Règles du jeu"><span class="long">Règles du jeu</span><span class="short" aria-hidden="true">?</span></button>
     </div>
   </div>
@@ -3041,8 +3051,13 @@ function renderMenu() {
   const honor = RULES.stake === 0, hand = honor ? [] : wallet.hand;
   $('pot-line').innerHTML = honor ? 'Pas de mise : on joue pour l’honneur, avec des dés ordinaires.'
     : `${CONFIG.ai} suit : <b>${RULES.stake * 2}</b> groschens sur la table.`;
+  // partie en cours : le menu reste replié sur elle tant qu’on n’a pas demandé une nouvelle partie
+  const fold = pendingMatch ? (menuFresh ? 'fresh' : 'folded') : '';
+  $('menu').dataset.fold = fold;
+  $('btn-menu-back').hidden = fold !== 'fresh'; $('btn-menu-rules').hidden = fold === 'fresh';
   // libellé court sur un écran étroit, pour tenir sur une ligne à côté du « ? »
-  const [long, short] = honor ? ['Jouer pour l’honneur', 'Sans mise'] : [`Miser ${RULES.stake} groschens`, `Miser ${RULES.stake}`];
+  const [long, short] = fold === 'folded' ? ['Nouvelle partie', 'Nouvelle partie']
+    : honor ? ['Jouer pour l’honneur', 'Sans mise'] : [`Miser ${RULES.stake} groschens`, `Miser ${RULES.stake}`];
   $('btn-start').innerHTML = `<span class="long">${long}</span><span class="short">${short}</span>`;
   $('btn-start').setAttribute('aria-label', long);
   $('hand-icons').innerHTML = Array.from({ length: HAND_SIZE }, (_, i) => (hand[i] ? kindIcon(hand[i]) : dieIcon(i + 1))).join('');
@@ -3052,7 +3067,7 @@ function renderMenu() {
   // partie interrompue : on propose de la reprendre ; une nouvelle mise l’abandonne (avec sa mise)
   const m = pendingMatch;
   $('resume-card').hidden = !m;
-  $('btn-start').classList.toggle('btn-wax', !m); $('btn-start').classList.toggle('btn-wood', !!m);
+  $('btn-start').classList.toggle('btn-wax', fold !== 'folded'); $('btn-start').classList.toggle('btn-wood', fold === 'folded');
   if (m) {
     $('resume-score').innerHTML = `Toi <b>${m.scores[0]}</b> · ${OPPONENTS[m.opponent].short} <b>${m.scores[1]}</b>`;
     $('resume-info').textContent = `En ${m.target} points, ${m.pot ? `pot de ${m.pot} groschens` : 'pour l’honneur'}. Une nouvelle partie l’abandonne.`;
@@ -3935,11 +3950,19 @@ document.querySelector('.length-stepper').addEventListener('click', (e) => {
   const next = b && LENGTHS[LENGTHS.findIndex((l) => l.target === RULES.target) + +b.dataset.step];
   if (next) chooseLength(next.target);
 });
-$('btn-start').addEventListener('click', () => { initAudio(); startGame(); });
+// « Nouvelle partie » déplie d’abord les réglages quand une partie attend ; « Retour » les replie
+let menuFresh = false;
+$('btn-start').addEventListener('click', () => {
+  initAudio();
+  if ($('menu').dataset.fold === 'folded') { menuFresh = true; sfxPlace('wood'); renderMenu(); tavernSay(OPP().hello); $('btn-start').focus(); return; }
+  menuFresh = false;
+  startGame();
+});
+$('btn-menu-back').addEventListener('click', () => { menuFresh = false; sfxPlace('wood'); renderMenu(); tavernSay(greeting()); });
 $('btn-resume').addEventListener('click', () => { if (pendingMatch) { initAudio(); startGame(pendingMatch); } });
 $('btn-again').addEventListener('click', () => { initAudio(); startGame(); });
 function backToMenu() {
-  game.token++; game.phase = 'menu'; replayJob = null;
+  game.token++; game.phase = 'menu'; replayJob = null; menuFresh = false;
   $('gameover').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden');
   document.body.dataset.screen = 'menu';
   renderMenu();
