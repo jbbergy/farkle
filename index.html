@@ -164,6 +164,11 @@
     background: transparent; border: 1.5px solid var(--ink-soft); border-radius: 5px 8px 6px 9px; touch-action: manipulation;
   }
   .try-voices button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+  /* quitter la partie en cours (seulement pendant une partie) */
+  .settings-quit { display: none; margin: 6px 0 2px; padding-top: 10px; border-top: 1px solid rgba(142, 30, 20, 0.3); }
+  body[data-screen="game"] .settings-quit { display: block; }
+  .settings-quit .btn { width: 100%; min-height: 2.9rem; }
+  .settings-quit p { margin: 6px 0 0; font-size: 0.92rem; font-style: italic; line-height: 1.3; color: var(--ink-soft); }
 
   /* ───────── Annonces ───────── */
   #toast {
@@ -560,6 +565,10 @@
       <label class="toggle"><span>Bruitages</span><input type="checkbox" data-bus="sfx" checked /></label>
       <label class="toggle"><span>Voix de la taverne</span><input type="checkbox" data-bus="voices" checked /></label>
       <div class="try-voices">Essayer : <button type="button" data-try="anecdote">une anecdote</button><button type="button" data-try="reaction">une réaction</button></div>
+      <div class="settings-quit">
+        <button type="button" class="btn btn-wood" id="btn-quit">Retour au menu</button>
+        <p>La partie est gardée : tu la reprendras depuis le menu. Seul le tour en cours est perdu.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -2059,15 +2068,18 @@ function clearMatch() {
   pendingMatch = null;
   try { localStorage.removeItem(MATCH_KEY); } catch { /* stockage indisponible */ }
 }
-let pendingMatch = null;
-try {
-  const m = JSON.parse(localStorage.getItem(MATCH_KEY));
-  const hand = (h) => (Array.isArray(h) ? h.filter((id) => DIE_KINDS[id]).slice(0, HAND_SIZE) : []);
-  if (m && Array.isArray(m.scores) && m.scores.length === 2 && validTarget(m.target)) {
-    pendingMatch = { target: m.target, pot: Math.max(0, m.pot | 0), scores: m.scores.map((v) => Math.max(0, v | 0)),
-      current: m.current === 1 ? 1 : 0, playerHand: hand(m.playerHand), tavernHand: hand(m.tavernHand) };
-  }
-} catch { /* rien à reprendre */ }
+function readMatch() {
+  try {
+    const m = JSON.parse(localStorage.getItem(MATCH_KEY));
+    const hand = (h) => (Array.isArray(h) ? h.filter((id) => DIE_KINDS[id]).slice(0, HAND_SIZE) : []);
+    if (m && Array.isArray(m.scores) && m.scores.length === 2 && validTarget(m.target)) {
+      return { target: m.target, pot: Math.max(0, m.pot | 0), scores: m.scores.map((v) => Math.max(0, v | 0)),
+        current: m.current === 1 ? 1 : 0, playerHand: hand(m.playerHand), tavernHand: hand(m.tavernHand) };
+    }
+  } catch { /* rien à reprendre */ }
+  return null;
+}
+let pendingMatch = readMatch();
 function validTarget(t) { return [2000, 4000, 8000].includes(t); }
 function saveWallet() {
   try { localStorage.setItem('farkle.bourse', JSON.stringify(wallet)); } catch { /* stockage indisponible */ }
@@ -3410,6 +3422,17 @@ function backToMenu() {
   tavernSay(greeting());
 }
 $('btn-to-menu').addEventListener('click', backToMenu);
+// Quitter la partie en cours : elle reste gardée telle qu’au début du tour, à reprendre depuis le menu ;
+// les dés en l’air retournent sur le tapis de celui qui jouait
+$('btn-quit').addEventListener('click', () => {
+  toggleSettings(false);
+  if (game.phase === 'menu' || game.phase === 'over') return;
+  const side = game.current;
+  stopTalk();
+  pendingMatch = readMatch();
+  backToMenu();
+  restOnMat(side);
+});
 $('stake-choice').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-stake]');
   if (!b || b.disabled) return;
