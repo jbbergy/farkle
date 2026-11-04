@@ -1242,7 +1242,11 @@ const isCoarse = matchMedia('(pointer: coarse)').matches;
 // Téléphone ou tablette : rendu allégé (définition, ombres, textures, cadence), voir aussi frame() et adaptResolution()
 const LOW_POWER = isCoarse;
 const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, powerPreference: 'high-performance' });
-let pixelRatio = Math.min(devicePixelRatio, LOW_POWER ? 1.5 : 2);
+// Ordinateur : 2 points de rendu par pixel, même sur un écran ordinaire où l’image, calculée plus grande puis réduite,
+// en sort plus fine ; adaptResolution() redescend jusqu’à la définition de l’écran si la carte graphique peine.
+// Téléphone : 1,5 au plus, et jusqu’à 1 si besoin.
+const MIN_PIXEL_RATIO = LOW_POWER ? 1 : Math.min(devicePixelRatio, 2);
+let pixelRatio = LOW_POWER ? Math.min(devicePixelRatio, 1.5) : 2;
 renderer.setPixelRatio(pixelRatio);
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -4293,10 +4297,10 @@ function frame(now = performance.now()) {
   update(Math.min(clock.getDelta(), 1 / 20));
   if (LOW_POWER) { renderer.shadowMap.needsUpdate = shadowsDirty || busy || sceneBusy(); shadowsDirty = false; }
   renderer.render(scene, camera);
-  if (LOW_POWER) adaptResolution(delta, interval);
+  adaptResolution(delta, LOW_POWER ? interval : 1000 / 60);
 }
-// Définition adaptative (téléphone) : si les images arrivent en retard de façon durable,
-// on baisse la définition du rendu d’un cran (jusqu’à 1 pixel de rendu par pixel CSS)
+// Définition adaptative : si les images arrivent en retard de façon durable (moins de 40 par seconde environ
+// sur ordinateur), on baisse la définition du rendu d’un cran, jusqu’à MIN_PIXEL_RATIO
 const perf = { frames: 0, late: 0, wait: 3000, interval: 0 };
 function adaptResolution(delta, interval) {
   const expected = Math.max(interval, perf.interval); // au passage du repos (30/s) au mouvement (60/s)
@@ -4306,8 +4310,8 @@ function adaptResolution(delta, interval) {
   perf.frames++;
   if (delta > expected * 1.45) perf.late++;
   if (perf.frames < 45) return;
-  if (perf.late > perf.frames * 0.5 && pixelRatio > 1) {
-    pixelRatio = Math.max(1, pixelRatio - 0.25);
+  if (perf.late > perf.frames * 0.5 && pixelRatio > MIN_PIXEL_RATIO) {
+    pixelRatio = Math.max(MIN_PIXEL_RATIO, pixelRatio - 0.25);
     renderer.setPixelRatio(pixelRatio);
     perf.wait = 2000;
   }
