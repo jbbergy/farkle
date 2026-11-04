@@ -1226,17 +1226,6 @@ function generateFlame() {
   x.fillStyle = bl; x.fillRect(0, 90, 64, 30);
   return c;
 }
-// Volute de fumée : quelques ronds doux superposés, un peu irréguliers
-function generatePuff() {
-  const c = makeCanvas(128, 128), x = c.getContext('2d');
-  for (let i = 0; i < 7; i++) {
-    const px = 64 + rand(-18, 18), py = 64 + rand(-18, 18), r = rand(26, 44);
-    const g = x.createRadialGradient(px, py, 0, px, py, r);
-    g.addColorStop(0, 'rgba(255,255,255,0.22)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
-  }
-  return c;
-}
 function generateGlow(inner = 'rgba(255,170,90,0.75)') {
   const c = makeCanvas(128, 128), x = c.getContext('2d');
   const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -1341,7 +1330,7 @@ const reserveMats = []; // tapis de cuir : [joueur, Tavernier]
 const ironMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, metalness: 0.85, roughness: 0.55 });
 const waxMat = new THREE.MeshStandardMaterial({ color: 0xeadcbc, roughness: 0.55, emissive: 0x5a2a08, emissiveIntensity: 0.35 });
 const wickMat = new THREE.MeshStandardMaterial({ color: 0x0c0806, roughness: 1 });
-let flameTex, glowTex, dustTex, smokeTex;
+let flameTex, glowTex, dustTex;
 
 // Échelle des accessoires : un dé mesure 1 unité, soit environ 2 cm. Bougie de 2,4 cm de diamètre
 // sur un bougeoir de 6 cm, chope d’étain de 11 cm, pièces de 2,5 cm (comme un gros de Prague).
@@ -1416,60 +1405,45 @@ function updateCandles(t, dt) {
   }
 }
 
-// Fumée qui monte des dés d’un Farkle, braises qui s’envolent des dés brûlants : quelques sprites réutilisés
-const FX = {
-  smoke: { life: [1.6, 2.4], size: [0.6, 2.6], rise: [0.8, 1.3], drift: 0.25, opacity: 0.85, color: 0xd2c7b8, blending: THREE.NormalBlending },
-  ember: { life: [0.9, 1.7], size: [0.6, 0.18], rise: [1.8, 3], drift: 0.7, opacity: 1, color: 0xffa040, blending: THREE.AdditiveBlending },
-};
-const fxLive = [], fxPool = { smoke: [], ember: [] };
-function emit(kind, x, y, z, delay = 0) {
-  const k = FX[kind];
-  let s = fxPool[kind].pop();
+// Braises qui s’envolent des dés brûlants : quelques sprites réutilisés
+const EMBER = { life: [0.9, 1.7], size: [0.6, 0.18], rise: [1.8, 3], drift: 0.7 };
+const embers = [], emberPool = [];
+function emitEmber(x, y, z, delay = 0) {
+  let s = emberPool.pop();
   if (!s) {
-    s = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: kind === 'smoke' ? smokeTex : dustTex, color: k.color, blending: k.blending, transparent: true, depthWrite: false, fog: false,
-    }));
-    s.userData.kind = kind;
+    s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dustTex, color: 0xffa040, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false }));
     scene.add(s);
   }
   s.visible = false;
   s.position.set(x, y, z);
+  const k = EMBER;
   s.userData.p = { age: -delay, life: rand(...k.life), vx: rand(-k.drift, k.drift), vy: rand(...k.rise), vz: rand(-k.drift, k.drift), phase: rand(0, 9) };
-  fxLive.push(s);
+  embers.push(s);
 }
-function updateFx(dt) {
-  for (let i = fxLive.length - 1; i >= 0; i--) {
-    const s = fxLive[i], p = s.userData.p, kind = s.userData.kind, k = FX[kind];
+function updateEmbers(dt) {
+  const k = EMBER;
+  for (let i = embers.length - 1; i >= 0; i--) {
+    const s = embers[i], p = s.userData.p;
     p.age += dt;
     if (p.age < 0) continue;
     const u = p.age / p.life;
-    if (u >= 1) { s.visible = false; fxLive.splice(i, 1); fxPool[kind].push(s); continue; }
+    if (u >= 1) { s.visible = false; embers.splice(i, 1); emberPool.push(s); continue; }
     s.visible = true;
     s.position.x += (p.vx + Math.sin(p.age * 3 + p.phase) * k.drift * 0.6) * dt;
     s.position.y += p.vy * dt;
     s.position.z += p.vz * dt;
     const size = k.size[0] + (k.size[1] - k.size[0]) * u;
     s.scale.set(size, size, 1);
-    // apparition rapide, extinction lente ; les braises vacillent
-    let o = k.opacity * Math.min(1, u * 6) * (1 - u);
-    if (kind === 'ember') o *= 0.6 + 0.4 * Math.sin(p.age * 25 + p.phase);
-    s.material.opacity = o;
+    // apparition rapide, extinction lente, en vacillant
+    s.material.opacity = Math.min(1, u * 6) * (1 - u) * (0.6 + 0.4 * Math.sin(p.age * 25 + p.phase));
   }
-}
-// Farkle : un filet de fumée monte des dés lancés, les bougies vacillent
-function farkleFx(list) {
-  for (const d of list) {
-    const p = d.mesh.position;
-    for (let i = 0; i < (LOW_POWER ? 3 : 5); i++) emit('smoke', p.x + rand(-0.2, 0.2), p.y + 0.45, p.z + rand(-0.2, 0.2), 0.2 + i * 0.22 + rand(0, 0.15));
-  }
-  gust = 1;
 }
 // Dés brûlants : les six dés rougeoient et des braises s’en envolent avant qu’ils repartent
 function hotFx(list) {
   for (const d of list) {
     d.heat = 1;
     const p = d.mesh.position;
-    for (let i = 0; i < (LOW_POWER ? 5 : 9); i++) emit('ember', p.x + rand(-0.4, 0.4), p.y + rand(0, 0.4), p.z + rand(-0.4, 0.4), rand(0, 0.8));
+    for (let i = 0; i < (LOW_POWER ? 5 : 9); i++) emitEmber(p.x + rand(-0.4, 0.4), p.y + rand(0, 0.4), p.z + rand(-0.4, 0.4), rand(0, 0.8));
   }
 }
 
@@ -1566,7 +1540,6 @@ function buildWorld() {
   flameTex = canvasTex(generateFlame(), true);
   glowTex = canvasTex(generateGlow(), true);
   dustTex = canvasTex(generateGlow('rgba(255,220,170,1)'), true);
-  smokeTex = canvasTex(generatePuff(), true);
   // bois procéduraux en 1024 px sur téléphone : quatre fois moins de calcul au chargement et de mémoire graphique
   const TEX = LOW_POWER ? 1024 : 2048;
 
@@ -2632,7 +2605,7 @@ async function farkle() {
   game.turnScore = 0;
   toast('Farkle !', lost ? `${lost} points perdus` : 'Aucun dé ne rapporte', 'farkle', 2000);
   sfxFarkle();
-  farkleFx(dice.filter((d) => d.state === 'table'));
+  gust = 1; // les bougies vacillent
   const who = game.current, me = who === 0;
   if (lost >= 500) react(me ? 'pot_perdu_toi' : 'pot_perdu_tavernier', 0.9, 1100);
   else react(me ? 'farkle_toi' : 'farkle_tavernier', 1, 1100);
@@ -4348,7 +4321,7 @@ function update(dt) {
   updateTweens(dt);
   updateCandles(elapsed, dt);
   updateDust(elapsed, dt);
-  updateFx(dt);
+  updateEmbers(dt);
   updateHover();
   updateDieTip();
   updateGlow(elapsed, dt);
@@ -4387,7 +4360,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 window.FarkleDebug = {
   game, dice, allDice, diceSets, RULES, scoreAll, enumerateSubsets, hasScore, audio, kb, view, camera, renderer, talk, say, pickLine, react,
   wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderMenu, carnet, unlock, house, OPPONENTS, TALK, OPP_TALK, crowdLines, chooseLine,
-  replay: () => replayJob, throwDice, farkleFx, hotFx, frameDice,
+  replay: () => replayJob, throwDice, hotFx, frameDice,
   layout: () => layout,
   // position écran (px CSS) d’un dé, pour tester les clics
   screenOf: (i) => screenOf(dice[i]),
