@@ -888,8 +888,21 @@ function updateTweens(dt) {
 //  3. TEXTURES PROCÉDURALES
 // ════════════════════════════════════════════════════════════════════
 
+// Auréole laissée par le pied d’une chope : un léger voile et deux arcs plus sombres, un peu décalés.
+// `ring` : rayons en pixels (en largeur, en hauteur) ; `rnd` : tirage (graine du bois, ou vrai hasard).
+function drawRing(c, x, y, ring, S, rnd) {
+  const k = 0.97 + rnd() * 0.06, rx = ring[0] * k, ry = ring[1] * k;
+  c.fillStyle = 'rgba(25,12,5,0.07)'; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.fill();
+  for (let j = 0; j < 2; j++) {
+    const a0 = rnd() * Math.PI * 2, f = 0.96 + j * 0.05;
+    c.strokeStyle = `rgba(18,8,3,${0.14 + rnd() * 0.12})`; c.lineWidth = (4 + rnd() * 7) * S;
+    c.beginPath(); c.ellipse(x + (rnd() - 0.5) * 10 * S, y + (rnd() - 0.5) * 10 * S, rx * f, ry * f, 0, a0, a0 + Math.PI * (1.2 + rnd() * 0.8)); c.stroke();
+  }
+}
+
 // Bois : veinage par anneaux déformés + planches, rayures, taches, usure.
-function generateWood({ w, h, planks, base, dark, light, seed, grain = 16, scratches = 300, stains = 3, burns = 2, edgeShade = 0, fineLines = 150, decorate = null }) {
+// `stains` auréoles de chopes de rayon `ring` (voir drawRing), placées selon la graine.
+function generateWood({ w, h, planks, base, dark, light, seed, ring = null, grain = 16, scratches = 300, stains = 3, burns = 2, edgeShade = 0, fineLines = 150, decorate = null }) {
   const rng = mulberry32(seed);
   const nA = makeNoise(seed * 7 + 1), nB = makeNoise(seed * 13 + 5);
   const LW = w >> 1, LH = h >> 1;
@@ -953,16 +966,8 @@ function generateWood({ w, h, planks, base, dark, light, seed, grain = 16, scrat
       c.stroke(); b.stroke();
     }
   }
-  // auréoles de chopes et éclaboussures
-  for (let i = 0; i < stains; i++) {
-    const x = rng() * w, y = rng() * h, R = (50 + rng() * 60) * S;
-    c.fillStyle = 'rgba(25,12,5,0.07)'; c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.fill();
-    for (let k = 0; k < 2; k++) {
-      const a0 = rng() * Math.PI * 2;
-      c.strokeStyle = `rgba(18,8,3,${0.14 + rng() * 0.12})`; c.lineWidth = (4 + rng() * 7) * S;
-      c.beginPath(); c.arc(x + (rng() - 0.5) * 10 * S, y + (rng() - 0.5) * 10 * S, R * (0.96 + k * 0.05), a0, a0 + Math.PI * (1.2 + rng() * 0.8)); c.stroke();
-    }
-  }
+  // auréoles de chopes, à la taille du pied des chopes posées sur la table
+  for (let i = 0; i < stains; i++) drawRing(c, rng() * w, rng() * h, ring, S, rng);
   // brûlures
   for (let i = 0; i < burns; i++) {
     const x = rng() * w, y = rng() * h, R = (25 + rng() * 45) * S;
@@ -1038,6 +1043,12 @@ function decorateBoard(c, b, rng, w, h) {
       ctx.beginPath(); ctx.arc(x, y, 11 * S, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(x, y, 3.5 * S, 0, Math.PI * 2); ctx.fill();
     }
+  }
+  // une à trois auréoles de chopes, tirées au vrai hasard à chaque chargement, n’importe où dans l’aire de jeu
+  const foot = TANKARD_FOOT * ppu, n = 1 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < n; i++) {
+    const x = inset + foot + Math.random() * (w - 2 * (inset + foot)), y = inset + foot + Math.random() * (h - 2 * (inset + foot));
+    drawRing(c, x, y, [foot, foot], S, Math.random);
   }
 }
 
@@ -1477,7 +1488,10 @@ function addCoins(count, seed) {
   return g;
 }
 
-// Chope de bière, renvoyée en groupe pour être placée selon la mise en page (placeSideProps)
+// Chope de bière, renvoyée en groupe pour être placée selon la mise en page (placeSideProps).
+// Modelée petite puis agrandie de TANKARD_SCALE ; son pied (rayon 0,62 à 0,66) laisse les auréoles du bois.
+const TANKARD_SCALE = 2.8;
+const TANKARD_FOOT = 0.64 * TANKARD_SCALE;
 function addTankard() {
   const pewter = new THREE.MeshStandardMaterial({ color: 0xa9a499, metalness: 0.85, roughness: 0.4, side: THREE.DoubleSide, envMapIntensity: 1.7 });
   // profil (rayon, hauteur) d’une chope d’environ 11 cm de haut pour 7,5 cm de large, une fois agrandie
@@ -1494,7 +1508,7 @@ function addTankard() {
   const foam = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), new THREE.MeshStandardMaterial({ color: 0xe8d3a2, roughness: 0.95 }));
   foam.rotation.x = -Math.PI / 2; foam.position.y = 1.7;
   g.add(body, foam);
-  g.scale.setScalar(2.8);
+  g.scale.setScalar(TANKARD_SCALE);
   scene.add(g);
   return g;
 }
@@ -1547,9 +1561,11 @@ function buildWorld() {
   // bois procéduraux en 1024 px sur téléphone : quatre fois moins de calcul au chargement et de mémoire graphique
   const TEX = LOW_POWER ? 1024 : 2048;
 
-  // Table (planches sombres, veinage perpendiculaire au plateau)
+  // Table (planches sombres, veinage perpendiculaire au plateau) : une texture carrée sur 40 × 48 unités
+  const [TW, TD] = [40, 48];
   const tableW = (!TEXTURES.tableColor || !TEXTURES.tableBump) ? generateWood({
     w: TEX, h: TEX, planks: 7, seed: 11, grain: 12, scratches: 520, stains: 6, burns: 4, edgeShade: 0, fineLines: 120,
+    ring: [TANKARD_FOOT * TEX / TW, TANKARD_FOOT * TEX / TD],
     base: [60, 39, 24], dark: [26, 15, 8], light: [88, 60, 38],
   }) : {};
   const tableMat = new THREE.MeshStandardMaterial({
@@ -1559,7 +1575,7 @@ function buildWorld() {
     roughness: 0.86, metalness: 0, envMapIntensity: 0.3,
   });
   tableMat.color.setScalar(0.62); // table plus sombre que le plateau, qui se détache mieux
-  const tableGeo = new THREE.PlaneGeometry(40, 48);
+  const tableGeo = new THREE.PlaneGeometry(TW, TD);
   tableGeo.rotateX(-Math.PI / 2);
   tableGeo.rotateY(Math.PI / 2);
   const table = new THREE.Mesh(tableGeo, tableMat);
@@ -1570,7 +1586,7 @@ function buildWorld() {
   // Plateau de chêne sombre
   const { w: BW, d: BD, h: BH } = CONFIG.board;
   const boardW = (!TEXTURES.boardColor || !TEXTURES.boardBump) ? generateWood({
-    w: TEX, h: Math.round(TEX * BD / BW / 2) * 2, planks: 3, seed: 5, grain: 9, scratches: 380, stains: 2, burns: 1,
+    w: TEX, h: Math.round(TEX * BD / BW / 2) * 2, planks: 3, seed: 5, grain: 9, scratches: 380, stains: 0, burns: 1,
     edgeShade: 0.55, fineLines: 170, decorate: decorateBoard,
     base: [84, 52, 30], dark: [36, 20, 10], light: [118, 78, 46],
   }) : {};
