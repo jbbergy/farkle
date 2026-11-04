@@ -11,10 +11,10 @@ En ligne : https://farkle.jibhey.fr
 Le jeu doit être servi en `http://` : ouvert directement depuis le disque, le navigateur bloque le chargement des sons.
 
 ```bash
-python3 -m http.server 8765
+npx serve --no-clipboard -l 8765
 ```
 
-Puis ouvrir http://localhost:8765.
+Puis ouvrir http://localhost:8765. Il faut Node.js ; la première fois, `npx` propose d’installer `serve`.
 
 ## Commandes
 
