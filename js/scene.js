@@ -86,8 +86,15 @@ export function buildEnvironment() {
 
 // Lumières : la lampe principale fait un rond de lumière sur le plateau et les tapis, le reste de la table
 // reste dans la pénombre des bougies, pour que l’œil aille droit aux dés
-const hemi = new THREE.HemisphereLight(0x8a5a32, 0x120804, 0.32);
+const HEMI = 0.32, HEMI_SKY = new THREE.Color(0x8a5a32), HEMI_WARM = new THREE.Color(0xc0702a);
+const hemi = new THREE.HemisphereLight(HEMI_SKY, 0x120804, HEMI);
 scene.add(hemi);
+// La salle suit les bougies (voir updateCandles) : plus chaude et plus claire quand elles s’embrasent (`glow`),
+// plus sombre au dernier tour (`dusk`) ; le rond de lumière sur les dés ne change pas
+export function setRoomLight({ glow, dusk }) {
+  hemi.intensity = HEMI * (1 - 0.55 * dusk) * (1 + 1.1 * glow);
+  hemi.color.copy(HEMI_SKY).lerp(HEMI_WARM, glow);
+}
 const key = new THREE.SpotLight(0xffc48a, 650, 0, 0.56, 0.4, 2);
 key.position.set(2.5, 16, 6.5);
 key.target.position.set(0, 0, 0.4);

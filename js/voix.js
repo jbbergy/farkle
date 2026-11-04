@@ -2,7 +2,7 @@
 
 import { RULES } from './config.js';
 import { $, rand } from './outils.js';
-import { ABOUT_TAVERNIER, NOT_VS, ONLY_VS, OPP_TALK, oppLines, OWN_MOMENT, PATRONS, TALK } from './repliques.js';
+import { ABOUT_TAVERNIER, NOT_VS, ONLY_VS, OPP_TALK, oppLines, OWN_MOMENT, PATRONS, PLAYER_STARTS, TALK } from './repliques.js';
 import { enumerateSubsets } from './regles.js';
 import { game } from './partie.js';
 import { audio, duckMusic, loadAudio } from './sons.js';
@@ -48,7 +48,10 @@ export function pickLine(cat) { return pickFrom(`${cat}:${RULES.opponent}`, crow
 // (`moment` : ce que l’adversaire dirait à la place d’un client ; par défaut celui de OWN_MOMENT)
 export function chooseLine(cat, moment = OWN_MOMENT[cat]) {
   const opp = RULES.opponent;
-  const own = moment ? pickFrom(`${opp}:${moment}`, oppLines(opp, moment)) : null;
+  let lines = moment ? oppLines(opp, moment) : [], key = `${opp}:${moment}`;
+  // l’adversaire qui ouvre la partie ne te tend pas les dés (tirage à part, pour ne pas mélanger les deux cas)
+  if (moment === 'debut' && game.starter === 1) { lines = lines.filter(([id]) => !PLAYER_STARTS.has(id)); key += ':lui'; }
+  const own = pickFrom(key, lines);
   const crowd = TALK[cat] ? pickLine(cat) : null;
   if (own && (!crowd || Math.random() < 0.55)) return own;
   return crowd;

@@ -8,8 +8,8 @@ import { OPPONENTS } from './adversaires.js';
 import { saveWallet, wallet } from './bourse.js';
 import { OPP_TALK, TALK } from './repliques.js';
 import {
-  _look, adaptResolution, applyLayout, camDir, camDist, camera, camTarget, layout, renderer, scene, updateShadowMap,
-  view
+  _look, adaptResolution, applyLayout, camDir, camDist, camera, camTarget, layout, renderer, scene, setRoomLight,
+  updateShadowMap, view
 } from './scene.js';
 import { buildWorld, hotFx, updateCandles, updateDust, updateEmbers } from './decor.js';
 import { world } from './physique.js';
@@ -19,7 +19,7 @@ import { countValues, enumerateSubsets, hasScore, scoreAll } from './regles.js';
 import { carnet, unlock } from './carnet.js';
 import { game, house, toggleDie } from './partie.js';
 import { aiChoose } from './ia.js';
-import { audio } from './sons.js';
+import { audio, hushRoom } from './sons.js';
 import { chooseLine, crowdLines, pickLine, react, say, talk } from './voix.js';
 import { frameDice } from './cadrage.js';
 import { initInput, kb, screenOf, touches, updateDieTip, updateGlow, updateHover } from './entrees.js';
@@ -50,13 +50,20 @@ function frame(now = performance.now()) {
   renderer.render(scene, camera);
   adaptResolution(delta, LOW_POWER ? interval : 1000 / 60);
 }
+// Dernier tour : celui qui doit rattraper l’autre joue dans la pénombre, la salle retient son souffle
+let hushed = false;
+function updateMood(dt) {
+  const dusk = game.finalFrom !== null && game.current !== game.finalFrom && game.phase !== 'over' && game.phase !== 'menu';
+  if (dusk !== hushed) { hushed = dusk; hushRoom(dusk); }
+  setRoomLight(updateCandles(elapsed, dt, dusk));
+}
 function update(dt) {
   elapsed += dt;
   if (!sim) world.step(1 / 120, dt, 8); // pendant le calcul d’un lancer, c’est lui qui fait avancer la physique
   for (const d of allDice) if (d.physics) { d.mesh.position.copy(d.body.position); d.mesh.quaternion.copy(d.body.quaternion); }
   updateReplay(dt);
   updateTweens(dt);
-  updateCandles(elapsed, dt);
+  updateMood(dt);
   updateDust(elapsed, dt);
   updateEmbers(dt);
   updateHover();

@@ -38,7 +38,7 @@ Des modules JavaScript natifs (`import` / `export`), chargés par le navigateur 
   (plateau, bougies, chopes, pièces), `physique.js`, `des.js`, `lancer.js`, `cadrage.js` (zoom et vue rapprochée).
 - Le jeu : `regles.js` (combinaisons et score), `partie.js` (tours, Farkle, fin de partie), `ia.js`,
   `bourse.js`, `carnet.js` (records et hauts faits), `sauvegarde.js` (partie en cours).
-- Le son : `sons.js` (musique, ambiance, bruitages), `voix.js`.
+- Le son : `sons.js` (musique, ambiance, bruitages), `voix.js` ; les vibrations du téléphone : `vibreur.js`.
 - Les commandes : `entrees.js` (souris, toucher, clavier).
 - Les fenêtres, dans `js/ui/` : `hud.js` (panneaux de la partie), `menu.js`, `echoppe.js`, `page-carnet.js`,
   `page-regles.js`, `reglages.js`, `parchemin.js` (bords déchirés, fenêtres qui se resserrent), `icones.js`.
@@ -66,12 +66,27 @@ et le Tavernier, du plus facile au plus coriace. Chacun a sa façon de jouer (`r
 son sac de dés spéciaux, la couleur de ses dés et ses répliques, écrites (menu, fin de partie) et dites
 (`OPP_TALK` dans `js/repliques.js`, fichiers `audio/voix/<adversaire>_<moment>_<n>.mp3`) : début de partie, Farkle, gros tour, beau ou mauvais lancer,
 beau lancer du joueur, relance risquée, fin de partie, et impatience quand le joueur tarde (20 s, puis 40 s).
-Une réplique écrite sans fichier audio est simplement sautée. Les clients ne parlent du Tavernier comme
+Une réplique écrite sans fichier audio est simplement sautée. Les saluts qui laissent la main au joueur
+(« les dés sont à toi », `PLAYER_STARTS`) ne sont dits que lorsque c’est lui qui commence. Les clients ne parlent du Tavernier comme
 adversaire que lorsque c’est lui qui joue (`ONLY_VS`, `ABOUT_TAVERNIER`), et un adversaire ne commente jamais
 la partie en spectateur. Le choix est gardé dans `farkle.adversaire`.
 
 Chacun commence une partie sur deux. Dès qu’un joueur atteint l’objectif, l’autre joue un dernier tour et doit le dépasser.
 Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouverture à 500 points et trois Farkles = −500.
+
+## Effets de la table
+
+- Les bougies vacillent au Farkle, s’embrasent quand le joueur garde 1000 points ou plus et quand il gagne (`flareCandles`
+  dans `js/decor.js`), et baissent pendant le dernier tour, avec le reste de la salle et l’ambiance sonore
+  (`updateMood` dans `js/main.js`, `setRoomLight`, `hushRoom`) ; le rond de lumière sur les dés ne change pas.
+- Sur un lancer qui vaut 1000 points ou plus, et à la victoire du joueur, quelqu’un se cogne le genou sous la table :
+  chopes et pièces sautent (`bangTable`), avec le choc sourd du plateau (`audio/genou_*.mp3`) et leur tintement (`sfxThud`).
+  Les dés ne bougent pas.
+- Les annonces s’animent selon leur genre (`#toast[data-kind]` dans `css/style.css`) : sceau qui s’écrase pour un Farkle,
+  flamme pour les dés brûlants, pièce qui brille pour les points gardés. Le score qui change grossit un instant et
+  tinte à chaque cinquantaine (`updateScoresDisplay`). Ces animations s’arrêtent si le système demande moins de mouvements.
+- Sur téléphone, les dés vibrent à leurs chocs, plus longuement au Farkle, deux fois à la victoire (`js/vibreur.js`).
+  Le réglage « Vibrations » (`farkle.vibrations`) n’apparaît que si le navigateur sait faire vibrer (pas sur iPhone).
 
 ## Carnet et hauts faits
 

@@ -6,13 +6,13 @@
 // - La musique est lue en flux (requêtes « Range ») : on garde le fichier entier et on en découpe les morceaux.
 // Changer VERSION quand les listes ci-dessous changent : l’ancienne copie est alors effacée.
 // Un fichier ajouté dans css/ ou js/ doit être ajouté à CODE (deploy.sh le vérifie), sinon le jeu ne se lance pas hors connexion.
-const VERSION = 'farkle-2';
+const VERSION = 'farkle-3';
 const SHELL = ['./', 'manifest.webmanifest', 'icons/icone.svg', 'icons/icone-192.png', 'icons/icone-512.png', 'icons/icone-apple.png'];
 const CODE = [
   'css/style.css',
   'js/main.js', 'js/config.js', 'js/outils.js', 'js/des-speciaux.js', 'js/adversaires.js', 'js/bourse.js', 'js/repliques.js',
   'js/textures.js', 'js/scene.js', 'js/decor.js', 'js/physique.js', 'js/des.js', 'js/lancer.js', 'js/regles.js',
-  'js/carnet.js', 'js/sauvegarde.js', 'js/partie.js', 'js/ia.js', 'js/sons.js', 'js/voix.js', 'js/cadrage.js', 'js/entrees.js',
+  'js/carnet.js', 'js/sauvegarde.js', 'js/partie.js', 'js/ia.js', 'js/sons.js', 'js/vibreur.js', 'js/voix.js', 'js/cadrage.js', 'js/entrees.js',
   'js/ui/parchemin.js', 'js/ui/icones.js', 'js/ui/hud.js', 'js/ui/page-regles.js', 'js/ui/echoppe.js', 'js/ui/page-carnet.js',
   'js/ui/menu.js', 'js/ui/reglages.js',
 ];

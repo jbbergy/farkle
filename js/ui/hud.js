@@ -5,6 +5,7 @@ import { $ } from '../outils.js';
 import { dice } from '../des.js';
 import { formatParts } from '../regles.js';
 import { bankBlock, game, OPENING, selectionInfo, shownScores } from '../partie.js';
+import { sfxTick } from '../sons.js';
 
 export const el = {
   scores: [$('score-0'), $('score-1')], rows: [$('row-0'), $('row-1')], bars: [$('bar-0'), $('bar-1')],
@@ -51,12 +52,26 @@ export function updateUI() {
   } else if (game.phase === 'banking') hint = 'Les pièces tintent…';
   el.hint.textContent = hint;
 }
+// Le score qui change grossit un instant (doré quand il monte, sombre quand il baisse), et le compteur qui monte
+// fait tinter une pièce à chaque cinquantaine passée : on entend le score grimper sans avoir à le lire
+const aimed = [0, 0], counted = [0, 0], ticks = [0, 0], lastTick = [0, 0];
+function popScore(i, up) {
+  const s = el.scores[i];
+  s.classList.remove('pop', 'drop'); void s.offsetWidth; s.classList.add(up ? 'pop' : 'drop');
+}
 export function updateScoresDisplay(dt) {
+  const t = performance.now();
   for (let i = 0; i < 2; i++) {
+    const goal = game.scores[i];
+    // un score posé d’un coup (nouvelle partie, reprise) ne s’anime pas
+    if (goal !== aimed[i]) { if (shownScores[i] !== goal) { popScore(i, goal > aimed[i]); ticks[i] = 0; } aimed[i] = goal; }
     const before = Math.round(shownScores[i]);
-    shownScores[i] += (game.scores[i] - shownScores[i]) * Math.min(1, dt * 5);
-    if (Math.abs(game.scores[i] - shownScores[i]) < 0.5) shownScores[i] = game.scores[i];
-    const now = Math.round(shownScores[i]);
+    shownScores[i] += (goal - shownScores[i]) * Math.min(1, dt * 5);
+    if (Math.abs(goal - shownScores[i]) < 0.5) shownScores[i] = goal;
+    const now = Math.round(shownScores[i]), step = Math.floor(now / 50);
+    if (now > before) {
+      if (step > counted[i] && t - lastTick[i] > 55) { sfxTick(i, ticks[i]++); counted[i] = step; lastTick[i] = t; }
+    } else counted[i] = step;
     if (now !== before || el.scores[i].textContent === '') el.scores[i].textContent = now;
   }
 }

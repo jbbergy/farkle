@@ -8,6 +8,7 @@ import { game, house, saveHouse } from '../partie.js';
 import { audio, initAudio, setSound } from '../sons.js';
 import { chooseLine, playAnecdote, say, talk } from '../voix.js';
 import { autoFrame, frameDice, setAutoFrame } from '../cadrage.js';
+import { canVibrate, setVibrations, vibrations } from '../vibreur.js';
 
 // Réglages : taille du texte et cadrage des dés, puis musique, ambiance et bruitages qui se coupent séparément (choix mémorisés)
 export const settingsBtn = $('btn-settings'), settingsPanel = $('settings-panel');
@@ -15,6 +16,8 @@ function syncSoundUI() {
   settingsPanel.querySelectorAll('input[data-bus]').forEach((i) => { i.checked = audio.on[i.dataset.bus]; });
   settingsPanel.querySelectorAll('input[data-house]').forEach((i) => { i.checked = house[i.dataset.house]; });
   settingsPanel.querySelector('input[data-view]').checked = autoFrame;
+  const vibe = settingsPanel.querySelector('input[data-vibe]');
+  if (vibe) vibe.checked = vibrations;
 }
 export function toggleSettings(open = settingsPanel.classList.contains('hidden')) {
   settingsPanel.classList.toggle('hidden', !open);
@@ -41,10 +44,12 @@ function setUiLevel(level, save = false) {
 
 // Panneau des réglages et choix de la taille du texte
 export function initSettings() {
+  if (!canVibrate) $('vibe-toggle').remove(); // ordinateur, iPhone : rien à faire vibrer
   settingsBtn.addEventListener('click', () => { initAudio(); toggleSettings(); });
   settingsPanel.addEventListener('change', (e) => {
-    const { bus, house: rule, view: framing } = e.target.dataset;
+    const { bus, house: rule, view: framing, vibe } = e.target.dataset;
     if (rule) { house[rule] = e.target.checked; saveHouse(); return; }
+    if (vibe !== undefined) { setVibrations(e.target.checked); return; }
     if (framing) {
       setAutoFrame(e.target.checked);
       try { localStorage.setItem('farkle.cadrage', autoFrame ? '1' : '0'); } catch { /* stockage indisponible */ }

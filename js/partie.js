@@ -7,16 +7,17 @@ import { faceValue } from './des-speciaux.js';
 import { OPP, pickTavernHand } from './adversaires.js';
 import { CREDIT, MIN_STAKE, saveWallet, wallet } from './bourse.js';
 import { layout } from './scene.js';
-import { blowCandles, hotFx } from './decor.js';
+import { bangTable, blowCandles, flareCandles, hotFx } from './decor.js';
 import {
   dice, equipDice, faceUpQuat, moveDie, placeBodyAtMesh, restOnMat, setInWorld, topFace, useSet
 } from './des.js';
 import { cancelReplay, throwDice } from './lancer.js';
-import { clickableValues, countValues, hasScore, scoreAll } from './regles.js';
+import { clickableValues, countValues, enumerateSubsets, hasScore, scoreAll } from './regles.js';
 import { carnet, noteParts, noteResult, saveCarnet, unlock } from './carnet.js';
 import { clearMatch, saveMatch, setPendingMatch } from './sauvegarde.js';
 import { aiTurn } from './ia.js';
-import { sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxVictory } from './sons.js';
+import { sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
+import { buzzBang, buzzFarkle, buzzVictory } from './vibreur.js';
 import { commentRoll, loadOppVoices, nag, playerActed, react } from './voix.js';
 import { frameDice, unframe } from './cadrage.js';
 import { dieTip, focusFirst, kb } from './entrees.js';
@@ -148,6 +149,12 @@ function beginTurn(p) {
   else toast(game.turns === 1 ? 'À toi de commencer' : 'À toi de jouer', '', 'info', 1100);
 }
 function endTurn() { beginTurn(1 - game.current); }
+// Quelqu’un se cogne le genou sous la table, un instant après (lancer exceptionnel, victoire du joueur) : chopes et pièces sautent
+const EXCEPTIONAL = 1000;
+function knock(k, delay) {
+  const tk = game.token;
+  setTimeout(() => { if (tk !== game.token) return; bangTable(k); sfxThud(k); buzzBang(); }, delay);
+}
 
 export async function rollAction() {
   const tk = game.token;
@@ -188,6 +195,7 @@ export async function rollAction() {
   if (!hasScore(counts)) { await farkle(); return 'farkle'; }
   if (game.current === 0 && toThrow.length === 1) unlock('tete_brulee');
   commentRoll(counts, toThrow.length);
+  if (Math.max(...enumerateSubsets(counts).map((s) => s.score)) >= EXCEPTIONAL) knock(0.8, 260);
   game.phase = 'choosing';
   game.clickable = clickableValues(counts);
   if (game.current === 0 && kb.active) focusFirst();
@@ -201,7 +209,8 @@ async function farkle() {
   const lost = game.turnScore;
   game.turnScore = 0;
   toast('Farkle !', lost ? `${lost} points perdus` : 'Aucun dé ne rapporte', 'farkle', 2000);
-  sfxFarkle();
+  sfxFarkle(); buzzFarkle();
+  sfxThud(0.5, 0.3, false); // le sceau de l’annonce s’écrase
   blowCandles(); // les bougies vacillent
   const who = game.current, me = who === 0;
   if (lost >= 500) react(me ? 'pot_perdu_toi' : 'pot_perdu_tavernier', 0.9, 1100);
@@ -248,6 +257,7 @@ export async function bankAction() {
     carnet.bestTurn = Math.max(carnet.bestTurn, gained); saveCarnet();
     if (gained >= 1000) unlock('mille');
     if (gained >= 2500) unlock('grand_tour');
+    if (gained >= 1000) flareCandles(0.6); // la salle s’enflamme pour un gros tour
   }
   toast(`+${gained}`, who === 0 ? 'Points mis à l’abri' : `${CONFIG.ai} empoche ses points`, 'bank', 1400);
   sfxCoins();
@@ -289,6 +299,6 @@ function gameOver(winner) {
   $('go-money').textContent = `${money} Ta bourse : ${wallet.purse} groschens.`;
   $('gameover').classList.remove('hidden');
   fitModal($('gameover').querySelector('.modal'));
-  winner === 0 ? sfxVictory() : sfxDefeat();
+  if (winner === 0) { sfxVictory(); buzzVictory(); flareCandles(1); knock(1, 350); } else sfxDefeat();
   react(winner === 0 ? 'victoire_toi' : 'victoire_tavernier', 1, 2200);
 }

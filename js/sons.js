@@ -13,6 +13,7 @@ const SOUNDS = {
   cuir: ['de_cuir_1.wav', 'de_cuir_2.wav', 'de_cuir_3.wav', 'de_cuir_4.wav'],   // dé posé sur le tapis
   secouer: ['secouer_1.mp3', 'secouer_2.mp3'],
   pieces: ['pieces_1.mp3', 'pieces_2.mp3'],
+  genou: ['genou_1.mp3', 'genou_2.mp3'],                                        // genou cogné sous le plateau
   farkle: ['farkle.mp3'], brulants: ['des_brulants.mp3'], victoire: ['victoire.mp3'], defaite: ['defaite.mp3'],
   ambiance: ['ambiance_taverne.wav'],
 };
@@ -32,7 +33,7 @@ export function initAudio() {
   const master = ctx.createGain();
   master.connect(comp); comp.connect(ctx.destination);
   const bus = {};
-  for (const k of ['music', 'ambience', 'sfx', 'voices']) { bus[k] = ctx.createGain(); bus[k].gain.value = audio.on[k] ? LEVELS[k] : 0; bus[k].connect(master); }
+  for (const k of ['music', 'ambience', 'sfx', 'voices']) { bus[k] = ctx.createGain(); bus[k].gain.value = audio.on[k] ? level(k) : 0; bus[k].connect(master); }
   // petite réverbération de salle sur les bruitages
   const conv = ctx.createConvolver();
   const len = ctx.sampleRate * 0.9, ir = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -125,12 +126,21 @@ function startMusic() {
   }
   audio.music.play().catch(() => {});
 }
+// Pendant le dernier tour, la salle retient son souffle : l’ambiance baisse (voir hushRoom)
+let hush = 1;
+const level = (k) => LEVELS[k] * (k === 'ambience' ? hush : 1);
+export function hushRoom(on) {
+  hush = on ? 0.35 : 1;
+  if (!audio.ctx || !audio.on.ambience) return;
+  const g = audio.bus.ambience.gain, t = audio.ctx.currentTime;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(level('ambience'), t + (on ? 2.5 : 1.5));
+}
 export function setSound(k, on) {
   audio.on[k] = on;
   try { localStorage.setItem('farkle.son', JSON.stringify(audio.on)); } catch { /* stockage indisponible */ }
   if (!audio.ctx) return;
   const g = audio.bus[k].gain, t = audio.ctx.currentTime;
-  g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(on ? LEVELS[k] : 0, t + 0.4);
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(on ? level(k) : 0, t + 0.4);
   if (k === 'music') {
     if (on) startMusic();
     else setTimeout(() => { if (!audio.on.music && audio.music) audio.music.pause(); }, 450);
@@ -250,3 +260,34 @@ export function sfxHot() { duckMusic(2); if (!playSample('brulants', { gain: 0.5
 export function sfxFeat() { synthTune([587.3, 740, 880, 1174.7], 0.07, 0.6, 0.06); }
 export function sfxVictory() { duckMusic(4); if (!playSample('victoire', { gain: 0.7 })) synthTune([293.7, 440, 392, 440, 587.3, 740, 587.3], 0.14, 0.7, 0.12); }
 export function sfxDefeat() { duckMusic(3); if (!playSample('defaite', { gain: 0.7 })) synthTune([440, 392, 349.2, 293.7, 220], 0.2, 0.8, 0.1); }
+// Quelqu’un se cogne le genou sous le plateau de la table : un choc sourd venu d’en dessous (genou_*.mp3), puis les chopes
+// d’étain et les pièces qui retombent (voir bangTable). Sans `pewter`, un simple choc sourd : le sceau du Farkle qui s’écrase.
+export function sfxThud(k = 1, when = 0, pewter = true) {
+  if (!sfxOn()) return;
+  const t = audio.ctx.currentTime + when;
+  if (!pewter) { thump(k, t, when); return; }
+  if (!playSample('genou', { gain: 0.85 * k, rate: rand(0.96, 1.04), when })) thump(k, t, when);
+  // l’étain sonne en retombant : des partiels inharmoniques, comme une cloche mate
+  for (const dt of [0.36, 0.43]) {
+    const f = rand(820, 980);
+    tone(f, t + dt, 0.32, 0.05 * k, 'sine'); tone(f * 2.71, t + dt, 0.18, 0.025 * k, 'sine'); tone(f * 4.13, t + dt, 0.1, 0.012 * k, 'sine');
+  }
+  // et les pièces des bourses qui retombent en tintant
+  for (let i = 0; i < 6; i++) { const f = rand(2600, 3700), dt = rand(0.2, 0.42); tone(f, t + dt, 0.14, 0.022 * k, 'sine'); tone(f * 2.76, t + dt, 0.08, 0.008 * k, 'sine'); }
+}
+// Choc sourd synthétisé : un coup dans le bois, plus grave, et une basse qui retombe
+function thump(k, t, when) {
+  const { ctx } = audio;
+  playSample('bois', { gain: 0.9 * k, rate: rand(0.5, 0.58), when });
+  const o = ctx.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.22);
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.45 * k, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0008, t + 0.3);
+  o.connect(g); g.connect(audio.bus.sfx); o.start(t); o.stop(t + 0.35);
+}
+// Cliquetis d’une pièce à chaque cinquantaine que passe le compteur du score, un peu plus aigu à chaque pièce
+// (plus grave pour l’adversaire)
+export function sfxTick(side, n) {
+  if (!sfxOn()) return;
+  const t = audio.ctx.currentTime, f = (side === 0 ? 2500 : 1900) * (1 + Math.min(n, 16) * 0.022) * rand(0.99, 1.01);
+  tone(f, t, 0.08, 0.035, 'sine'); tone(f * 2.76, t, 0.05, 0.012, 'sine');
+}

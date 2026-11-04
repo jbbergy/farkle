@@ -64,6 +64,12 @@ html, body {
 }
 .row .bar i { display: block; height: 100%; width: 0; background: var(--red); transition: width 0.8s ease; }
 #row-1 .bar i { background: var(--ink-soft); }
+/* score qui change : il grossit un instant, doré s’il monte, sombre s’il baisse (voir updateScoresDisplay) */
+.row .pts { transform-origin: 100% 60%; }
+.row .pts.pop { animation: score-pop 0.8s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.row .pts.drop { animation: score-drop 0.8s ease; }
+@keyframes score-pop { 22% { transform: scale(1.35); color: #8f6408; text-shadow: 0 0 10px rgba(246, 205, 110, 0.95); } }
+@keyframes score-drop { 22% { transform: scale(0.85); color: #5a0f0a; } }
 
 #actions { position: absolute; right: 16px; bottom: 16px; width: 19rem; padding: 0.875rem 1.25rem 0.75rem; }
 .banner { font-family: var(--f-title); font-size: 1.7rem; color: var(--red); text-align: center; line-height: 1.05; }
@@ -186,6 +192,52 @@ body[data-screen="game"] .settings-quit { display: block; }
 #toast[data-kind="farkle"] .t-main { color: #e2482f; text-shadow: 0 0 26px rgba(220, 40, 20, 0.6), 0 2px 0 #2a0703, 0 8px 28px #000; }
 #toast[data-kind="hot"] .t-main { color: #ffc35a; }
 #toast[data-kind="bank"] .t-main { color: #f6d27a; }
+/* Annonces animées : « Farkle ! » tombe comme un sceau qu’on écrase (une onde de cire part au choc),
+   « Dés brûlants ! » monte et vacille comme une flamme, les points gardés sautent et brillent comme une pièce */
+#toast .t-main { display: inline-block; position: relative; }
+#toast .t-main::before {
+  content: ''; position: absolute; left: 50%; top: 50%; z-index: -1; width: 2.4em; height: 2.4em; margin: -1.2em 0 0 -1.2em;
+  border-radius: 50%; border: 0.1em solid rgba(226, 72, 47, 0.6); opacity: 0; pointer-events: none;
+}
+#toast .t-main::after {
+  content: '✦'; position: absolute; right: -0.35em; top: -0.2em; font: 0.6em/1 system-ui, sans-serif;
+  color: #fff4cf; text-shadow: 0 0 12px #ffd77a, 0 0 4px #fff; opacity: 0; pointer-events: none;
+}
+#toast.show[data-kind="farkle"] .t-main { animation: stamp 0.6s both; }
+#toast.show[data-kind="farkle"] .t-main::before { animation: wax-wave 0.7s 0.3s ease-out both; }
+#toast.show[data-kind="hot"] .t-main { transform-origin: 50% 100%; animation: flame-in 0.5s ease-out both, flicker 0.75s 0.3s ease-in-out infinite; }
+#toast.show[data-kind="bank"] .t-main { animation: coin-pop 0.5s ease-out both; }
+#toast.show[data-kind="bank"] .t-main::after { animation: glint 0.9s 0.3s ease-out both; }
+@keyframes stamp {
+  0% { transform: scale(2.6); opacity: 0; animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5); }
+  50% { transform: scale(0.92); opacity: 1; animation-timing-function: ease-out; }
+  64% { transform: scale(1.04) rotate(-1deg); }
+  80% { transform: scale(0.99) rotate(0.4deg); }
+  100% { transform: none; }
+}
+@keyframes wax-wave { 0% { transform: scale(0.45); opacity: 0.95; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes flame-in {
+  0% { transform: translateY(0.35em) scale(0.75, 0.4); opacity: 0; }
+  55% { transform: translateY(-0.05em) scale(1.04, 1.12); opacity: 1; }
+  100% { transform: none; }
+}
+@keyframes flicker {
+  0%, 100% { scale: 1 1; rotate: 0deg; text-shadow: 0 0 22px rgba(255, 150, 40, 0.75), 0 2px 0 #2a1407, 0 8px 28px rgba(0, 0, 0, 0.95); }
+  25% { scale: 1 1.04; rotate: -0.8deg; text-shadow: 0 0 34px rgba(255, 180, 70, 0.95), 0 2px 0 #2a1407, 0 8px 28px rgba(0, 0, 0, 0.95); }
+  50% { scale: 1 0.98; rotate: 0.6deg; text-shadow: 0 0 16px rgba(255, 120, 30, 0.6), 0 2px 0 #2a1407, 0 8px 28px rgba(0, 0, 0, 0.95); }
+  75% { scale: 1 1.03; rotate: -0.3deg; text-shadow: 0 0 28px rgba(255, 165, 55, 0.9), 0 2px 0 #2a1407, 0 8px 28px rgba(0, 0, 0, 0.95); }
+}
+@keyframes coin-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  45% { transform: scale(1.14); opacity: 1; }
+  70% { transform: scale(0.97); }
+  100% { transform: none; }
+}
+@keyframes glint {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  40% { transform: scale(1.2) rotate(45deg); opacity: 1; }
+  100% { transform: scale(0) rotate(90deg); opacity: 0; }
+}
 
 /* Haut fait obtenu : un bandeau qui descend du haut de l’écran */
 #feat-toast {
@@ -502,7 +554,7 @@ button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset:
   .row { grid-template-columns: minmax(0, 1fr); padding: 0 0 0 0.95rem; font-size: 1rem; line-height: 1.15; }
   .row::before { top: 0; }
   .row .lead, .row .art { display: none; }
-  .row .pts { font-size: 1.4rem; line-height: 1.1; }
+  .row .pts { font-size: 1.4rem; line-height: 1.1; transform-origin: 0 60%; }
   #actions { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); width: auto; max-width: 560px; margin: 0 auto; padding: 7px 10px 9px; }
   .buttons { gap: 6px; margin-top: 6px; }
   #corner { top: calc(8px + env(safe-area-inset-top)); right: 8px; }
@@ -578,4 +630,8 @@ button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset:
   .overlay { padding: 8px; }
   .modal { max-height: calc(100dvh - 16px); padding: 18px 14px 16px; }
   .rules-page { padding: 18px 6px 14px 14px; }
+}
+/* mouvements réduits (réglage du système) : les annonces et les scores apparaissent sans s’animer */
+@media (prefers-reduced-motion: reduce) {
+  #toast .t-main, #toast .t-main::before, #toast .t-main::after, .row .pts { animation: none !important; }
 }

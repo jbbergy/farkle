@@ -9,6 +9,7 @@ import { MASK_ALL, MASK_ENTER_L, MASK_ENTER_R, world } from './physique.js';
 import { FACES, moveDie, placeBodyAtMesh, randomQuat, setInWorld, spawnPos, storeRest, topFace } from './des.js';
 import { game } from './partie.js';
 import { sfxHit, sfxRattle } from './sons.js';
+import { buzzHit } from './vibreur.js';
 
 // Un lancer est calculé d’un coup (physique à pas fixe, jusqu’à ce que les dés reposent), puis rejoué à l’écran.
 // Chaque dé spécial tire d’abord sa face selon ses chances ; à la lecture, son image est tournée d’un des
@@ -91,7 +92,7 @@ export function updateReplay(dt) {
   job.t += dt;
   const { frames, sounds } = job.rec, last = frames.length - 1;
   const f = frames[Math.min(last, Math.floor(job.t / SIM_STEP))];
-  while (job.sound < sounds.length && sounds[job.sound].t <= job.t) { const s = sounds[job.sound++]; sfxHit(s.v, s.kind); }
+  while (job.sound < sounds.length && sounds[job.sound].t <= job.t) { const s = sounds[job.sound++]; sfxHit(s.v, s.kind); buzzHit(s.v); }
   job.list.forEach((d, i) => {
     const k = i * 7;
     d.mesh.position.set(f[k], f[k + 1], f[k + 2]);

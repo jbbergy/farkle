@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CONFIG, isCoarse, LOW_POWER, TEXTURES } from './config.js';
-import { mulberry32, rand } from './outils.js';
+import { mulberry32, rand, tween, tweens } from './outils.js';
 import {
   decorateBoard, generateCoinFace, generateFlame, generateGlow, generateLeather, generateWood
 } from './textures.js';
@@ -72,23 +72,35 @@ function addCandle(x, z, h, { shadow = false, intensity = 22, size = 2.2 } = {})
 }
 let gust = 0; // coup de vent sur les bougies après un Farkle, de 1 à 0
 export function blowCandles() { gust = 1; }
-export function updateCandles(t, dt) {
+// Les bougies suivent la partie : elles s’embrasent quand le joueur garde un gros tour ou gagne (`flare`, de 1 à 0),
+// et baissent pendant le dernier tour (`dusk`, de 0 à 1, voir updateMood dans main.js)
+const mood = { flare: 0, glow: 0, dusk: 0 };
+export function flareCandles(k = 1) { mood.flare = Math.max(mood.flare, k); }
+export function updateCandles(t, dt, duskOn = false) {
   gust = Math.max(0, gust - dt * 0.55);
+  mood.flare = Math.max(0, mood.flare - dt * 0.22);
+  mood.glow += (mood.flare - mood.glow) * Math.min(1, dt * 5); // les flammes montent en une fraction de seconde
+  mood.dusk += ((duskOn ? 1 : 0) - mood.dusk) * Math.min(1, dt * 1.2);
+  const lift = 1 + 1.8 * mood.glow, dim = 1 - 0.5 * mood.dusk;
   for (const c of candles) {
     c.timer -= dt;
     if (c.timer <= 0) { c.wanderTarget = rand(0.72, 1.1); c.timer = rand(0.05, 0.28); }
     c.wander += (c.wanderTarget - c.wander) * Math.min(1, dt * 9);
     const shiver = gust * (0.4 + 0.25 * Math.sin(t * 31 + c.phase));
     const f = c.wander * (0.93 + 0.05 * Math.sin(t * 9.1 + c.phase) + 0.03 * Math.sin(t * 23.7 + c.phase * 1.7)) * (1 - shiver);
-    c.light.intensity = c.base * f;
+    c.light.intensity = c.base * f * lift * dim;
     const sway = Math.sin(t * 3.1 + c.phase) * 0.02 + Math.sin(t * 7.7 + c.phase) * 0.01 + gust * 0.07 * Math.sin(t * 14 + c.phase);
-    c.flame.scale.set(0.24 + 0.03 * Math.sin(t * 17 + c.phase), 0.42 + 0.14 * f, 1);
+    // flamme plus haute et plus large quand elle s’embrase, plus petite dans la pénombre
+    const tall = (1 + 0.75 * mood.glow) * (1 - 0.25 * mood.dusk);
+    c.flame.scale.set((0.24 + 0.03 * Math.sin(t * 17 + c.phase)) * (1 + 0.3 * mood.glow), (0.42 + 0.14 * f) * tall, 1);
     c.flame.position.x = sway;
-    c.halo.material.opacity = 0.3 + 0.25 * f;
-    if (c.core) { c.core.material.opacity = 0.35 + 0.3 * f; c.core.position.x = sway; }
-    if (c.bloom) c.bloom.material.opacity = 0.08 + 0.07 * f;
+    c.halo.material.opacity = (0.3 + 0.25 * f) * (1 + 0.6 * mood.glow) * dim;
+    c.halo.scale.setScalar(2.2 * (1 + 0.35 * mood.glow));
+    if (c.core) { c.core.material.opacity = (0.35 + 0.3 * f) * (1 + 0.4 * mood.glow) * dim; c.core.position.x = sway; }
+    if (c.bloom) c.bloom.material.opacity = (0.08 + 0.07 * f) * (1 + 1.2 * mood.glow) * dim;
     c.light.position.x = sway * 4;
   }
+  return mood;
 }
 
 // Braises qui s’envolent des dés brûlants : quelques sprites réutilisés
@@ -134,6 +146,7 @@ export function hotFx(list) {
 }
 
 // Bourse de pièces, renvoyée en groupe pour être placée selon la mise en page (placeSideProps)
+const STACK = 5; // les premières pièces forment une pile, les autres sont éparpillées autour
 function addCoins(count, seed) {
   const g = new THREE.Group();
   const rng = mulberry32(seed);
@@ -144,16 +157,19 @@ function addCoins(count, seed) {
   const face = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.45, bumpMap: faceBump, bumpScale: 2, envMapIntensity: 1.15 });
   const coins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.62, 0.62, 0.08, 32), [edge, face, face], count);
   const silver = new THREE.Color(0xc9c2b5), copper = new THREE.Color(0xb06a3e), o = new THREE.Object3D();
+  const rest = []; // place de chaque pièce, pour la faire sauter quand on tape sur la table (bangTable)
   for (let i = 0; i < count; i++) {
     const isCopper = rng() < 0.3;
-    if (i < 5) o.position.set((rng() - 0.5) * 0.15, CONFIG.tableY + 0.04 + i * 0.085, (rng() - 0.5) * 0.15);
+    if (i < STACK) o.position.set((rng() - 0.5) * 0.15, CONFIG.tableY + 0.04 + i * 0.085, (rng() - 0.5) * 0.15);
     else { const a = rng() * Math.PI * 2, r = 0.9 + rng() * 0.9; o.position.set(Math.cos(a) * r, CONFIG.tableY + 0.04, Math.sin(a) * r * 0.7); }
     o.rotation.y = rng() * Math.PI;
     o.updateMatrix();
+    rest.push({ pos: o.position.clone(), yaw: o.rotation.y });
     coins.setMatrixAt(i, o.matrix);
     coins.setColorAt(i, isCopper ? copper : silver);
   }
   coins.castShadow = coins.receiveShadow = true;
+  g.userData.pile = { coins, rest };
   g.add(coins);
   scene.add(g);
   return g;
@@ -199,6 +215,48 @@ export function placeSideProps() {
     tankard.position.set(s * p.tankard[0], CONFIG.tableY, s * p.tankard[1]);
     tankard.rotation.y = p.tankard[2] + (i ? Math.PI : 0);
     coins.position.set(s * p.coins[0], 0, s * p.coins[1]);
+  });
+}
+
+// Coup de genou sous la table (lancer exceptionnel, victoire) : les chopes et les pièces des bourses sautent
+// et retombent avec un petit rebond, en penchant un peu, et les bougies tremblent. Les dés ne bougent pas.
+// hopAt(s) : hauteur relative au temps s (0 à 1) : un saut sur 60 % du temps, puis un rebond quatre fois plus bas
+const hopAt = (s) => (s < 0.6 ? 4 * (s / 0.6) * (1 - s / 0.6) : 4 * ((s - 0.6) / 0.4) * (1 - (s - 0.6) / 0.4) / 4);
+const _coin = new THREE.Object3D();
+export function bangTable(k = 1) {
+  gust = Math.max(gust, 0.3 * k);
+  sideProps.forEach(({ tankard, coins }, i) => {
+    if (tankard.userData.hop) tweens.delete(tankard.userData.hop);
+    const h = rand(0.8, 1) * k, delay = i * rand(0.03, 0.08), lean = [rand(-0.14, 0.14) * k, rand(-0.14, 0.14) * k];
+    const T = 0.62 + delay;
+    tankard.userData.hop = tween({
+      duration: T * 1000, ease: (x) => x,
+      update: (u) => {
+        const s = Math.max(0, (u * T - delay) / (T - delay)), tilt = Math.sin(Math.PI * s) * (1 - s);
+        tankard.position.y = CONFIG.tableY + h * hopAt(s);
+        tankard.rotation.x = lean[0] * tilt; tankard.rotation.z = lean[1] * tilt;
+      },
+      complete: () => { tankard.position.y = CONFIG.tableY; tankard.rotation.x = tankard.rotation.z = 0; tankard.userData.hop = null; },
+    });
+    // les pièces, plus légères, sautent moins haut et moins longtemps, chacune un peu à sa façon
+    const { coins: mesh, rest } = coins.userData.pile;
+    if (coins.userData.hop) tweens.delete(coins.userData.hop);
+    // (la pile saute d’un bloc, chaque pièce un rien plus haut que celle du dessous, pour ne pas se traverser)
+    const stack = { h: rand(0.25, 0.4) * k, delay: rand(0, 0.04), len: rand(0.38, 0.44) };
+    const jumps = rest.map((r, j) => (j < STACK
+      ? { ...stack, h: stack.h + j * 0.03 * k, tilt: [rand(-0.1, 0.1) * k, rand(-0.1, 0.1) * k] }
+      : { h: rand(0.25, 0.55) * k, delay: rand(0, 0.07), len: rand(0.36, 0.46), tilt: [rand(-0.35, 0.35) * k, rand(-0.35, 0.35) * k] }));
+    const place = (u) => {
+      rest.forEach((r, j) => {
+        const J = jumps[j], s = Math.min(1, Math.max(0, (u * 0.55 - J.delay) / J.len)), tilt = Math.sin(Math.PI * s) * (1 - s);
+        _coin.position.copy(r.pos); _coin.position.y += J.h * hopAt(s);
+        _coin.rotation.set(J.tilt[0] * tilt, r.yaw, J.tilt[1] * tilt);
+        _coin.updateMatrix();
+        mesh.setMatrixAt(j, _coin.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    };
+    coins.userData.hop = tween({ duration: 550, ease: (x) => x, update: place, complete: () => { place(1); coins.userData.hop = null; } });
   });
 }
 
