@@ -1,0 +1,581 @@
+/* Farkle — dés à la chandelle : la feuille de style du jeu */
+:root {
+  --ui: 1; /* échelle de l’interface (réglage « Taille du texte ») */
+  --ink: #2a190c;
+  --ink-soft: #4a3019;
+  --ink-faint: rgba(42, 25, 12, 0.45);
+  --red: #8e1e14;
+  --parch: #dcc597;
+  --f-title: 'UnifrakturMaguntia', 'Old English Text MT', 'Luminari', serif;
+  --f-body: 'IM Fell English', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --f-sc: 'IM Fell English SC', 'IM Fell English', Georgia, serif;
+  --noise-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.18 0 0 0 0 0.07 0 0 0 0.9 -0.32'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --noise-blot: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='4' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.26 0 0 0 0 0.1 0 0 0 1.1 -0.45'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+}
+* { box-sizing: border-box; }
+html { font-size: calc(16px * var(--ui)); }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: #050302;
+  color: var(--ink); font-family: var(--f-body);
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+}
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+.vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 2;
+  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 52%, rgba(5, 2, 1, 0.5) 82%, rgba(3, 1, 0, 0.88) 100%);
+}
+
+/* ───────── Parchemin ─────────
+   Les bords déchirés sont un masque calculé une fois par taille de panneau (roughenEdge, dans le script),
+   et non un filtre SVG en direct : recalculé à chaque repeinte, il faisait ramer les téléphones.
+   Le parchemin déborde de 6 px autour du panneau pour laisser la place aux déchirures (EDGE_PAD). */
+.parchment { position: relative; color: var(--ink); isolation: isolate; }
+.parchment::before {
+  content: ''; position: absolute; inset: -6px; z-index: -1;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 42%, rgba(255, 249, 228, 0.55), rgba(255, 249, 228, 0) 70%),
+    radial-gradient(ellipse 120% 110% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(96, 52, 18, 0.55) 100%),
+    var(--noise-blot), var(--noise-fine), var(--parch);
+  background-size: auto, auto, 600px 600px, 240px 240px, auto;
+  -webkit-mask: var(--edge) 0 0 / 100% 100% no-repeat;
+  mask: var(--edge) 0 0 / 100% 100% no-repeat;
+}
+.parchment::after { content: ''; position: absolute; inset: 0; z-index: -2; border-radius: 2px; box-shadow: 0 10px 22px rgba(0, 0, 0, 0.6); }
+
+/* ───────── HUD ───────── */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; transition: opacity 0.6s; }
+#hud.hidden { opacity: 0; }
+#hud.hidden * { pointer-events: none !important; }
+#hud > * { pointer-events: auto; }
+
+/* Ordinateur : une colonne à droite (scores en haut, commandes en bas) ; le plateau occupe le reste */
+#scores { position: absolute; top: calc(28px + 2.875rem); right: 16px; width: 19rem; padding: 0.875rem 1.25rem; }
+.panel-title { font-family: var(--f-title); font-weight: normal; font-size: 2.1rem; color: var(--red); margin: 0; line-height: 1; }
+.target { font-family: var(--f-sc); font-size: 0.95rem; color: var(--ink-soft); margin: 2px 0 8px; letter-spacing: 0.03em; }
+.row { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 6px; font-size: 1.15rem; padding: 4px 0 0 1.25rem; position: relative; }
+.row::before { content: '❧'; position: absolute; left: 0; top: 4px; color: var(--red); opacity: 0; transition: opacity 0.3s; }
+.row.active::before { opacity: 1; }
+.row.active .who { color: var(--red); }
+.row .lead { border-bottom: 2px dotted var(--ink-faint); transform: translateY(-5px); }
+.row .pts { font-family: var(--f-sc); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.row .bar {
+  grid-column: 1 / -1; height: 0.5rem; margin-top: 4px; border-radius: 3px; overflow: hidden;
+  background: rgba(42, 25, 12, 0.12); box-shadow: inset 0 0 0 1px rgba(42, 25, 12, 0.3);
+}
+.row .bar i { display: block; height: 100%; width: 0; background: var(--red); transition: width 0.8s ease; }
+#row-1 .bar i { background: var(--ink-soft); }
+
+#actions { position: absolute; right: 16px; bottom: 16px; width: 19rem; padding: 0.875rem 1.25rem 0.75rem; }
+.banner { font-family: var(--f-title); font-size: 1.7rem; color: var(--red); text-align: center; line-height: 1.05; }
+.tally { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0 0; text-align: center; }
+.tally span { display: block; font-family: var(--f-sc); font-size: 0.92rem; color: var(--ink-soft); letter-spacing: 0.04em; }
+.tally b { font-family: var(--f-sc); font-weight: normal; font-size: 1.75rem; font-variant-numeric: tabular-nums; }
+.tally b.bad { color: var(--red); }
+.combo { min-height: 1.35em; text-align: center; font-style: italic; color: var(--ink-soft); font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; margin-top: 6px; }
+.buttons .btn { min-height: 3.1rem; }
+.hint { margin: 10px 2px 0; font-style: italic; font-size: 1rem; color: var(--ink-soft); text-align: center; min-height: 2.5em; line-height: 1.25; }
+
+/* ───────── Boutons ───────── */
+.btn {
+  font-family: var(--f-sc); font-size: 1.12rem; letter-spacing: 0.02em; line-height: 1.1;
+  border: none; cursor: pointer; padding: 0.62em 0.6em; color: #f3e3bf; position: relative;
+  border-radius: 6px 9px 7px 10px / 9px 6px 10px 7px;
+  transition: transform 0.12s, filter 0.2s, opacity 0.25s;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6); touch-action: manipulation;
+}
+.btn kbd { display: none; }
+.btn-wax {
+  background: radial-gradient(circle at 35% 28%, #b8392d 0%, #8a1d15 48%, #5a0f0a 100%);
+  box-shadow: inset 0 2px 3px rgba(255, 190, 160, 0.35), inset 0 -3px 6px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+.btn-wood {
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.09) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #6b4526, #47280f);
+  box-shadow: inset 0 0 0 2px rgba(214, 170, 92, 0.75), inset 0 2px 3px rgba(255, 220, 170, 0.25), 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+.btn-ghost { background: transparent; color: var(--ink); border: 2px solid var(--ink-soft); text-shadow: none; }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+/* bouton inactif : une place vide en pointillé, mais un texte foncé qui reste lisible sur le parchemin */
+.btn:disabled {
+  background: rgba(42, 25, 12, 0.06); box-shadow: none; text-shadow: none; color: var(--ink-soft); cursor: not-allowed;
+  outline: 2px dashed rgba(74, 48, 25, 0.55); outline-offset: -2px;
+}
+.btn:disabled kbd { border-color: rgba(74, 48, 25, 0.45); }
+.btn:focus-visible, .seal-btn:focus-visible, .choice button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) { filter: brightness(1.14); transform: translateY(-1px); }
+  .seal-btn:hover { filter: brightness(1.15); transform: rotate(-6deg); }
+  /* touche clavier rappelée sur le bouton */
+  .btn kbd {
+    display: inline-block; margin-left: 0.45em; padding: 0 0.3em; min-width: 1.35em;
+    font-family: var(--f-sc); font-size: 0.74em; line-height: 1.35; vertical-align: 0.1em;
+    border: 1px solid rgba(243, 227, 191, 0.5); border-radius: 3px; opacity: 0.75;
+  }
+}
+
+#corner { position: fixed; top: 16px; right: 16px; z-index: 35; display: flex; gap: 10px; }
+body[data-screen="menu"] #btn-rules { display: none; }
+.seal-btn {
+  width: 2.875rem; height: 2.875rem; border: none; cursor: pointer; padding: 0;
+  border-radius: 52% 48% 50% 50% / 49% 53% 47% 51%;
+  font-family: var(--f-body); font-size: 1.45rem; color: #f2dfb8; line-height: 2.875rem;
+  background: radial-gradient(circle at 38% 32%, #b8382c, #7d160f 60%, #4c0a06);
+  box-shadow: inset 0 2px 3px rgba(255, 200, 170, 0.35), inset 0 -3px 5px rgba(0, 0, 0, 0.5), 0 4px 10px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s, filter 0.2s; touch-action: manipulation;
+}
+.seal-btn.off { filter: grayscale(0.8) brightness(0.7); }
+.seal-btn svg { width: 1.3rem; height: 1.3rem; vertical-align: -0.2rem; }
+
+/* Réglages : taille du texte et son */
+#settings-panel {
+  position: absolute; top: calc(100% + 12px); right: 0; width: min(16rem, calc(100vw - 16px)); padding: 0.75rem 1.125rem 0.625rem;
+  display: flex; flex-direction: column; max-height: calc(100vh - 100% - 44px); max-height: calc(100svh - 100% - 44px);
+  transition: opacity 0.2s, transform 0.2s, visibility 0s 0s;
+}
+/* sur un écran très bas, seul le contenu défile : le parchemin reste en place */
+.settings-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(91, 63, 37, 0.6) transparent; }
+#settings-panel.hidden { opacity: 0; transform: translateY(-6px); visibility: hidden; pointer-events: none; transition: opacity 0.2s, transform 0.2s, visibility 0s 0.2s; }
+#settings-panel .panel-kicker { font-family: var(--f-sc); color: var(--ink-soft); letter-spacing: 0.08em; font-size: 0.95rem; margin: 2px 0; }
+#settings-panel .choice { margin: 4px 0 10px; }
+.size-choice button { min-width: 3rem; line-height: 1.2; }
+.size-choice button[data-ui="1"] { font-size: 1rem; }
+.size-choice button[data-ui="2"] { font-size: 1.2rem; }
+.size-choice button[data-ui="3"] { font-size: 1.4rem; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 1.15rem; cursor: pointer; }
+.toggle + .toggle { border-top: 1px dashed rgba(42, 25, 12, 0.25); }
+.toggle input {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: none; cursor: pointer;
+  width: 2.875rem; height: 1.625rem; border-radius: 0.8125rem; position: relative;
+  background: rgba(42, 25, 12, 0.18); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35); transition: background 0.2s;
+}
+.toggle input::after {
+  content: ''; position: absolute; top: 0.1875rem; left: 0.1875rem; width: 1.25rem; height: 1.25rem; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #f6ead0, #cdb487); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); transition: transform 0.2s;
+}
+.toggle input:checked { background: var(--red); }
+.toggle input:checked::after { transform: translateX(1.25rem); }
+.toggle input:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+.try-voices { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 6px; font-size: 0.95rem; color: var(--ink-soft); }
+.try-voices button {
+  font-family: var(--f-body); font-size: 0.95rem; color: var(--ink); cursor: pointer; padding: 0.15em 0.55em;
+  background: transparent; border: 1.5px solid var(--ink-soft); border-radius: 5px 8px 6px 9px; touch-action: manipulation;
+}
+.try-voices button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+/* quitter la partie en cours (seulement pendant une partie) */
+.house-note { margin: 2px 0 6px; font-size: 0.92rem; font-style: italic; line-height: 1.3; color: var(--ink-soft); }
+.settings-quit { display: none; margin: 6px 0 2px; padding-top: 10px; border-top: 1px solid rgba(142, 30, 20, 0.3); }
+body[data-screen="game"] .settings-quit { display: block; }
+.settings-quit .btn { width: 100%; min-height: 2.9rem; }
+.settings-quit p { margin: 6px 0 0; font-size: 0.92rem; font-style: italic; line-height: 1.3; color: var(--ink-soft); }
+
+/* ───────── Annonces ───────── */
+#toast {
+  position: fixed; left: 50%; top: 46%; z-index: 20; pointer-events: none; text-align: center;
+  width: max-content; max-width: calc(100vw - 24px); text-wrap: balance;
+  transform: translate(-50%, -50%) scale(0.92); opacity: 0;
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+#toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+#toast .t-main {
+  font-family: var(--f-title); font-size: clamp(2.8rem, 8vw, 5.4rem); color: #f3e2b9; line-height: 1;
+  text-shadow: 0 0 24px rgba(255, 160, 70, 0.55), 0 2px 0 #2a1407, 0 8px 28px rgba(0, 0, 0, 0.95);
+}
+#toast .t-sub { margin-top: 6px; font-style: italic; font-size: clamp(1rem, 2.6vw, 1.35rem); color: #ecd9ae; text-shadow: 0 2px 10px #000, 0 0 3px #000; }
+#toast[data-kind="farkle"] .t-main { color: #e2482f; text-shadow: 0 0 26px rgba(220, 40, 20, 0.6), 0 2px 0 #2a0703, 0 8px 28px #000; }
+#toast[data-kind="hot"] .t-main { color: #ffc35a; }
+#toast[data-kind="bank"] .t-main { color: #f6d27a; }
+
+/* Haut fait obtenu : un bandeau qui descend du haut de l’écran */
+#feat-toast {
+  position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top)); z-index: 45; pointer-events: none;
+  width: max-content; max-width: min(24rem, calc(100vw - 24px)); padding: 0.5rem 1.1rem 0.6rem; text-align: center; line-height: 1.2;
+  transform: translate(-50%, calc(-100% - 30px)); opacity: 0; transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s;
+}
+#feat-toast.show { transform: translate(-50%, 0); opacity: 1; }
+#feat-toast small { display: block; font-family: var(--f-sc); color: var(--ink-soft); letter-spacing: 0.08em; font-size: 0.9rem; }
+#feat-toast b { display: block; font-family: var(--f-sc); font-weight: normal; color: var(--red); font-size: 1.4rem; }
+#feat-toast span { display: block; font-size: 1rem; }
+
+/* Nom d’un dé spécial, au-dessus du dé survolé, choisi au clavier ou tout juste pris */
+#die-tip {
+  position: fixed; z-index: 8; left: 0; top: 0; pointer-events: none; width: max-content; max-width: min(19rem, calc(100vw - 16px));
+  display: flex; align-items: center; gap: 10px; padding: 0.45rem 0.85rem 0.5rem;
+  color: var(--ink); line-height: 1.2;
+  transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity 0.18s;
+}
+#die-tip.below { transform: translate(-50%, 10px); }
+#die-tip.show { opacity: 1; }
+#die-tip .die-ico { width: 1.8rem; height: 1.8rem; margin: 0; vertical-align: 0; flex: none; }
+#die-tip b { display: block; font-family: var(--f-sc); font-weight: normal; font-size: 1.15rem; color: var(--red); }
+#die-tip small { display: block; margin-top: 1px; font-size: 1rem; }
+
+/* ───────── Fenêtres ───────── */
+.overlay {
+  position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(8, 4, 2, 0.2), rgba(4, 2, 1, 0.75));
+  transition: opacity 0.45s, visibility 0s 0s;
+}
+.overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.45s, visibility 0s 0.45s; }
+#rules { z-index: 40; }
+/* le parchemin reste fixe, seul son contenu défile */
+.modal { width: min(34rem, 100%); min-width: 0; max-height: calc(100dvh - 32px); display: flex; flex-direction: column; padding: 30px 40px 28px; text-align: center; }
+.modal-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(91, 63, 37, 0.6) transparent; }
+.kicker { font-family: var(--f-sc); letter-spacing: 0.12em; color: var(--ink-soft); font-size: 0.95rem; }
+.big-title { font-family: var(--f-title); font-weight: normal; font-size: clamp(3.6rem, 12vw, 5.6rem); color: var(--red); margin: 4px 0 4px; line-height: 1; }
+.ornament { font-size: 1.3rem; color: var(--ink-soft); margin: 0 0 10px; }
+.lede { font-size: 1.15rem; line-height: 1.45; margin: 0 auto 18px; max-width: 30em; }
+.field-label { font-family: var(--f-sc); color: var(--ink-soft); letter-spacing: 0.06em; }
+.choice { display: flex; justify-content: center; gap: 10px; margin: 6px 0 14px; }
+.choice button {
+  flex: 0 1 auto; min-width: 0;
+  font-family: var(--f-sc); font-size: 1.15rem; padding: 0.3em 0.9em; cursor: pointer; color: var(--ink);
+  background: transparent; border: 2px solid var(--ink-soft); border-radius: 5px 8px 6px 9px;
+}
+.choice button.active { background: var(--red); border-color: #5e100b; color: #f3e3bf; }
+.modal-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.modal-actions .btn { min-width: 9em; }
+/* les boutons restent visibles sous le contenu, même s’il doit défiler */
+.modal > .modal-actions { flex: none; padding-top: 4px; }
+/* Petit écran ou grands caractères : fitModal retire d’abord l’ornement, puis le chapeau (et le titre rapetisse),
+   puis le texte d’ambiance, jusqu’à ce que tout tienne sans défiler */
+.modal[data-trim="1"] [data-opt="1"],
+.modal[data-trim="2"] :is([data-opt="1"], [data-opt="2"]),
+.modal[data-trim="3"] :is([data-opt="1"], [data-opt="2"], [data-opt="3"]),
+.modal[data-trim="4"] :is([data-opt="1"], [data-opt="2"], [data-opt="3"], [data-opt="4"]),
+.modal[data-trim="5"] [data-opt] { display: none; }
+.modal:is([data-trim="2"], [data-trim="3"], [data-trim="4"]) .big-title { font-size: 2.9rem; margin-bottom: 8px; }
+.modal h2 { font-family: var(--f-title); font-weight: normal; color: var(--red); font-size: 2.5rem; margin: 0 0 6px; }
+.modal p { text-align: left; line-height: 1.45; margin: 0 0 10px; }
+.modal .red { color: var(--red); }
+.rules-table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: 1.05rem; }
+.rules-table td { padding: 4px 6px; border-bottom: 1px dashed rgba(42, 25, 12, 0.3); text-align: left; }
+.rules-table td:last-child { text-align: right; font-family: var(--f-sc); white-space: nowrap; }
+
+/* Page des règles */
+.rules-page { width: min(42rem, 100%); padding: 26px 14px 22px 34px; }
+.rules-page .modal-body { text-align: left; padding-right: 20px; }
+.rules-page h2 { text-align: center; }
+.rules-page h3 {
+  font-family: var(--f-sc); font-weight: normal; font-size: 1.3rem; color: var(--red); letter-spacing: 0.03em;
+  margin: 18px 0 6px; padding-bottom: 2px; border-bottom: 1px solid rgba(142, 30, 20, 0.3);
+}
+.rules-page .lede { text-align: center; margin-bottom: 4px; }
+.rules-page .modal-actions { padding: 14px 20px 0 0; }
+.steps { margin: 0 0 6px; padding-left: 1.6em; line-height: 1.45; }
+.steps li { margin-bottom: 5px; }
+.steps li::marker { font-family: var(--f-sc); color: var(--red); }
+.example { margin: 8px 0 4px; padding: 10px 14px; background: rgba(42, 25, 12, 0.07); border-left: 3px solid rgba(142, 30, 20, 0.45); line-height: 1.5; }
+.controls { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; margin: 4px 0 8px; }
+.controls dt { font-family: var(--f-sc); white-space: nowrap; }
+.controls dd { margin: 0; }
+.controls.opponents { align-items: baseline; }
+.controls.opponents dt { color: var(--red); }
+.rules-page kbd {
+  display: inline-block; min-width: 1.5em; padding: 0 0.32em; text-align: center;
+  font-family: var(--f-sc); font-size: 0.92em; line-height: 1.45; color: var(--ink);
+  border: 1px solid var(--ink-soft); border-bottom-width: 2px; border-radius: 4px; background: rgba(255, 249, 228, 0.35);
+}
+.die-ico { width: 1.75em; height: 1.75em; vertical-align: -0.5em; margin: 0 1px; }
+.die-ico rect { fill: var(--body, #f1e5c9); stroke: #5b3f25; stroke-width: 1.1; }
+.die-ico .ring { fill: none; stroke: var(--pip, #3a2412); stroke-width: 0.9; }
+.die-ico .dot { fill: var(--pip, #3a2412); }
+
+/* Échoppe aux dés */
+.shop-page { width: min(48rem, 100%); }
+.shop-page .lede b { color: var(--red); }
+.hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: 8px; margin: 6px 0 4px; }
+.hand-slot {
+  display: flex; align-items: center; gap: 8px; min-height: 3rem; padding: 6px 8px; text-align: left;
+  font-family: var(--f-body); font-size: 1rem; line-height: 1.2; color: var(--ink);
+  background: rgba(255, 249, 228, 0.35); border: 2px solid var(--ink-soft); border-radius: 6px;
+}
+button.hand-slot { cursor: pointer; touch-action: manipulation; }
+button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+.hand-slot.empty { border-style: dashed; color: var(--ink-soft); }
+.hand-slot .die-ico { flex: none; width: 2rem; height: 2rem; margin: 0; vertical-align: 0; }
+.shop-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 12px; margin-bottom: 6px; }
+.die-card {
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;
+  background: rgba(42, 25, 12, 0.06); border: 1px solid rgba(91, 63, 37, 0.35); border-radius: 6px;
+}
+.die-card-head { display: flex; gap: 10px; align-items: flex-start; }
+.die-card-head .die-ico { flex: none; width: 3rem; height: 3rem; margin: 0; vertical-align: 0; }
+.die-card h4 { margin: 0 0 2px; font-family: var(--f-sc); font-weight: normal; font-size: 1.15rem; color: var(--red); }
+.modal .die-card p { margin: 0; line-height: 1.35; }
+.odds { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; height: 6.2rem; }
+.odd { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; font-family: var(--f-sc); font-size: 0.95rem; white-space: nowrap; }
+.odd i { display: block; width: 70%; height: calc(var(--p) * 0.055rem); min-height: 2px; background: var(--red); border-radius: 2px 2px 0 0; }
+.odd .die-ico { width: 1.6rem; height: 1.6rem; margin: 0; vertical-align: 0; }
+.die-card .status { font-style: italic; font-size: 1.05rem; }
+.die-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; }
+.die-card-foot .price { flex: 1 1 100%; font-family: var(--f-sc); font-size: 1.1rem; }
+.die-card-foot .btn { flex: 1 1 8em; min-height: 2.75rem; }
+.die-card-foot:empty { display: none; }
+.die-card-foot .btn-ghost.armed { background: var(--red); border-color: #5e100b; color: #f3e3bf; }
+
+/* Carnet : parties, records et hauts faits */
+.carnet-table td:first-child { font-family: var(--f-body); }
+.feats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 10px; margin: 6px 0 8px; }
+.feat { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 6px; line-height: 1.3; }
+.feat.got { background: rgba(142, 30, 20, 0.09); border: 2px solid rgba(142, 30, 20, 0.6); }
+.feat:not(.got) { border: 2px dashed rgba(74, 48, 25, 0.55); color: var(--ink-soft); }
+.feat .seal { flex: none; width: 2.1rem; height: 2.1rem; border-radius: 50%; display: grid; place-items: center; font-size: 1.1rem; margin-top: 2px; }
+.feat.got .seal { color: #f3e3bf; background: radial-gradient(circle at 38% 32%, #b8382c, #7d160f 60%, #4c0a06); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); }
+.feat:not(.got) .seal { border: 2px dashed rgba(74, 48, 25, 0.55); }
+.feat b { display: block; font-family: var(--f-sc); font-weight: normal; font-size: 1.12rem; }
+.feat.got b { color: var(--red); }
+.feat small { display: block; font-size: 0.95rem; font-style: italic; margin-top: 2px; }
+
+/* ───────── Menu : la table du Tavernier ─────────
+   Une colonne sur téléphone en portrait ; deux colonnes dès que la place le permet. La requête de conteneur
+   est en rem : elle suit aussi la taille du texte (A, A+, A++). */
+.menu-modal { width: min(52rem, 100%); container-type: inline-size; }
+.menu-grid { display: flex; flex-direction: column; gap: 12px; }
+.menu-left, .menu-right { display: contents; }
+.menu-intro { order: 1; }
+.purse-badge { order: 2; }
+.resume-card { order: 3; }
+.menu-opponent { order: 4; }
+.menu-stakes { order: 5; }
+.menu-lengths { order: 6; }
+.menu-hand { order: 7; }
+@container (min-width: 30rem) {
+  .menu-grid { flex-direction: row; gap: 24px; }
+  .menu-left, .menu-right { display: flex; flex-direction: column; justify-content: center; gap: 12px; flex: 1 1 0; min-width: 0; }
+  .menu-right { flex-grow: 1.15; }
+}
+.modal .tavern-line { margin: 2px auto 0; max-width: 24em; font-style: italic; font-size: 1.1rem; line-height: 1.35; text-align: center; }
+.tavern-line .who { font-style: normal; font-family: var(--f-sc); color: var(--ink-soft); white-space: nowrap; }
+.tavern-line.say #tavern-say { display: inline-block; animation: say-in 0.45s ease; }
+@keyframes say-in { from { opacity: 0; transform: translateY(5px); } }
+/* partie interrompue, à reprendre */
+.resume-card {
+  display: grid; gap: 4px; justify-items: center; padding: 8px 12px 10px; text-align: center;
+  background: rgba(142, 30, 20, 0.08); border: 2px solid rgba(142, 30, 20, 0.55); border-radius: 8px;
+}
+.resume-card[hidden] { display: none; }
+.modal .resume-card p { margin: 0; text-align: center; }
+.resume-score { font-family: var(--f-sc); font-size: 1.2rem; }
+.resume-score b { font-weight: normal; color: var(--red); }
+.resume-info { font-size: 0.98rem; line-height: 1.3; }
+.resume-card .btn { margin-top: 4px; min-width: 11em; }
+/* la bourse */
+.purse-badge {
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 5.4rem 8px 14px; position: relative; width: 100%;
+  font-family: var(--f-body); font-size: 1rem; color: var(--ink); text-align: left; cursor: pointer; touch-action: manipulation;
+  background: rgba(42, 25, 12, 0.08); border: 1px solid rgba(91, 63, 37, 0.45); border-radius: 8px;
+}
+/* la bourse ouvre le carnet : « › » au bord droit */
+.purse-badge .hand-go { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-family: var(--f-sc); font-size: 1.05rem; }
+.purse-badge:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+.pouch { width: 3.4rem; height: 3.4rem; flex: none; }
+.purse-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.purse-label { font-family: var(--f-sc); color: var(--ink-soft); letter-spacing: 0.06em; }
+.purse-sum { font-size: 1.25rem; }
+.purse-sum b { display: inline-block; font-family: var(--f-sc); font-weight: normal; font-size: 2.2rem; color: var(--red); }
+.purse-badge.gain .purse-sum b { animation: purse-gain 1.2s ease; }
+.purse-badge.loss .purse-sum b { animation: purse-loss 1.2s ease; }
+@keyframes purse-gain { 30% { color: #a87a12; transform: scale(1.15); } }
+@keyframes purse-loss { 30% { color: #5a0f0a; transform: scale(0.9); } }
+.c-top { fill: #e2dccd; stroke: #5d4a30; stroke-width: 0.8; }
+.c-side { fill: #9e9483; stroke: #5d4a30; stroke-width: 0.8; }
+/* mises (piles de pièces) et durée de la partie */
+.menu-section .field-label { margin-bottom: 5px; }
+.stakes, .lengths { display: grid; gap: 8px; }
+.stakes { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.lengths { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stakes button, .lengths button {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; min-height: 2.9rem;
+  padding: 6px 4px; cursor: pointer; color: var(--ink); font-family: var(--f-sc); touch-action: manipulation;
+  background: rgba(255, 249, 228, 0.3); border: 2px solid var(--ink-soft); border-radius: 6px 9px 7px 10px;
+  transition: transform 0.15s, background-color 0.2s, box-shadow 0.2s;
+}
+.stakes button.active, .lengths button.active {
+  background: var(--red); border-color: #5e100b; color: #f3e3bf; transform: translateY(-2px); box-shadow: 0 4px 9px rgba(42, 25, 12, 0.35);
+}
+.stakes button:disabled { opacity: 0.35; cursor: not-allowed; }
+.stakes button:focus-visible, .lengths button:focus-visible, .hand-preview:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+@media (hover: hover) {
+  :is(.stakes, .lengths) button:hover:not(:disabled):not(.active), .hand-preview:hover, .purse-badge:hover { background-color: rgba(255, 249, 228, 0.65); }
+}
+.stakes .coins { width: 2.3rem; height: 2rem; }
+.stakes b { font-size: 1.35rem; font-weight: normal; line-height: 1; }
+.lengths b { font-size: 1.12rem; font-weight: normal; line-height: 1.1; text-wrap: balance; }
+.lengths small { font-family: var(--f-body); font-size: 0.92rem; line-height: 1.1; }
+.modal .pot-line { margin: 7px 0 0; text-align: center; }
+/* colonne étroite : la durée devient un sélecteur ‹ › sur une ligne, la bourse se resserre */
+.length-stepper, .opp-stepper { display: none; grid-template-columns: 2.9rem minmax(0, 1fr) 2.9rem; gap: 6px; align-items: stretch; }
+.opp-stepper { display: grid; }
+:is(.length-stepper, .opp-stepper) .step {
+  font-family: var(--f-sc); font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--ink); touch-action: manipulation;
+  background: rgba(255, 249, 228, 0.3); border: 2px solid var(--ink-soft); border-radius: 6px 9px 7px 10px;
+}
+:is(.length-stepper, .opp-stepper) .step:disabled { opacity: 0.3; cursor: default; }
+:is(.length-stepper, .opp-stepper) .step:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+.step-value {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 2.9rem; padding: 2px 4px;
+  font-family: var(--f-sc); color: #f3e3bf; background: var(--red); border: 2px solid #5e100b; border-radius: 6px 9px 7px 10px;
+}
+.step-value b { font-size: 1.12rem; font-weight: normal; line-height: 1.1; }
+.step-value small { font-family: var(--f-body); font-size: 0.92rem; line-height: 1.1; }
+.pot-line b { font-family: var(--f-sc); font-weight: normal; color: var(--red); }
+/* tes dés : un raccourci vers l’échoppe */
+.hand-preview {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 2.9rem; padding: 6px 10px;
+  cursor: pointer; color: var(--ink); font-family: var(--f-sc); font-size: 1.05rem; touch-action: manipulation;
+  background: rgba(255, 249, 228, 0.3); border: 2px dashed var(--ink-soft); border-radius: 6px;
+}
+.hand-icons { display: flex; gap: 3px; min-width: 0; }
+.hand-icons .die-ico { width: 1.65rem; height: 1.65rem; margin: 0; vertical-align: 0; flex: none; }
+.hand-go { white-space: nowrap; color: var(--red); }
+.menu-modal .modal-actions { margin-top: 14px; }
+.btn-start { font-size: 1.3rem; }
+.modal-actions .btn-start { min-width: 11em; }
+.menu-modal .short { display: none; }
+/* Partie en cours : le menu se replie sur elle (« Nouvelle partie » déplie les réglages d’une nouvelle partie) */
+#menu[data-fold="folded"] :is(.menu-right, .menu-hand, #btn-menu-shop) { display: none !important; }
+#menu[data-fold="folded"] .menu-left { max-width: 28rem; margin-inline: auto; }
+#menu[data-fold="folded"] .menu-grid { grid-template-columns: minmax(0, 1fr); }
+#menu[data-fold="fresh"] .resume-card { display: none; }
+#btn-menu-back[hidden], #btn-menu-rules[hidden] { display: none; }
+/* téléphone en paysage : l’échoppe passe dans la rangée des boutons (voir plus bas) */
+#btn-menu-shop { display: none; }
+@container (max-width: 22rem) {
+  /* « Règles du jeu » devient un « ? » à côté de la mise : une ligne de boutons au lieu de deux */
+  .menu-modal .modal-actions { flex-wrap: nowrap; gap: 8px; }
+  .modal-actions .btn-start { flex: 1 1 auto; min-width: 0; font-size: 1.15rem; text-wrap: balance; }
+  .modal-actions :is(#btn-menu-rules, #btn-menu-back) { flex: none; min-width: 0; width: 3.2rem; padding-inline: 0; font-size: 1.5rem; }
+  .menu-modal .long { display: none; }
+  .menu-modal .short { display: inline; }
+  .stakes { gap: 5px; }
+  .hand-go .word { display: none; }
+  .hand-go { font-size: 1.5rem; line-height: 1; }
+  .hand-icons .die-ico { width: 1.5rem; height: 1.5rem; }
+  .lengths { display: none; }
+  .length-stepper { display: grid; }
+  .opp-max { display: none; }
+  .purse-badge { padding: 4px 2.2rem 4px 10px; gap: 8px; }
+  .pouch { width: 2.6rem; height: 2.6rem; }
+  .purse-sum { font-size: 1.1rem; }
+  .purse-sum b { font-size: 1.7rem; }
+}
+
+#loading {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #050302;
+  color: #d9c08a; font-family: var(--f-title); font-size: 2rem; transition: opacity 0.7s;
+}
+#loading.done { opacity: 0; pointer-events: none; }
+
+/* ───────── Téléphone (portrait ou paysage) : panneaux resserrés ─────────
+   Le zoom d’accessibilité du téléphone et « A+ / A++ » grossissent tout : on garde la place pour le plateau.
+   « Ce tour » et « Sélection » tiennent chacun sur une ligne, et la combinaison choisie prend la place
+   du conseil (une seule zone, au-dessus des boutons). Rien n’est coupé : les textes passent à la ligne. */
+@media (orientation: portrait), (orientation: landscape) and (max-height: 560px) {
+  #scores .panel-title, .banner { display: none; }
+  #actions { display: flex; flex-direction: column; }
+  .buttons { order: 1; }
+  .tally { margin: 0; gap: 4px; }
+  .tally > div { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; column-gap: 0.25em; }
+  .tally span { display: inline; font-size: 0.8rem; letter-spacing: 0.02em; }
+  .tally b { font-size: 1.4rem; line-height: 1.15; }
+  .combo, .hint {
+    display: flex; align-items: center; justify-content: center; min-height: 2.5em; margin: 2px 0 0;
+    font-size: 0.92rem; line-height: 1.25; white-space: normal; overflow: visible; text-wrap: balance;
+  }
+  .combo:empty, .combo:not(:empty) ~ .hint { display: none; }
+  .buttons .btn { min-height: 3rem; padding-inline: 0.3em; letter-spacing: 0; text-wrap: balance; }
+  .seal-btn { width: 2.75rem; height: 2.75rem; line-height: 2.75rem; font-size: 1.35rem; }
+}
+/* ───────── Portrait : scores en haut, commandes en bas ─────────
+   (le plateau est tourné d’un quart de tour pour occuper la hauteur, voir applyLayout) */
+@media (orientation: portrait) {
+  /* garde-fou : même avec un fort zoom et « A++ », l’interface dispose d’au moins 16,5 × 27 rem */
+  html { font-size: min(calc(16px * var(--ui)), calc(100vw / 16.5), calc(100svh / 27)); }
+  #scores {
+    top: calc(8px + env(safe-area-inset-top)); left: 8px; right: calc(26px + 5.5rem); width: auto; padding: 6px 12px 8px;
+    display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px;
+  }
+  .target { grid-column: 1 / -1; margin: 0 0 2px; font-size: 0.8rem; text-align: center; }
+  /* les deux joueurs côte à côte, le score sous le nom */
+  .row { grid-template-columns: minmax(0, 1fr); padding: 0 0 0 0.95rem; font-size: 1rem; line-height: 1.15; }
+  .row::before { top: 0; }
+  .row .lead, .row .art { display: none; }
+  .row .pts { font-size: 1.4rem; line-height: 1.1; }
+  #actions { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); width: auto; max-width: 560px; margin: 0 auto; padding: 7px 10px 9px; }
+  .buttons { gap: 6px; margin-top: 6px; }
+  #corner { top: calc(8px + env(safe-area-inset-top)); right: 8px; }
+  /* écran étroit (en rem) : les deux sceaux s’empilent à droite pour laisser la largeur aux scores */
+  html.narrow #scores { right: calc(16px + 2.75rem); }
+  html.narrow #corner { flex-direction: column; gap: 6px; }
+  /* le chapeau du menu ne passe pas sous la roue des réglages */
+  .menu-intro .kicker { padding-inline: 2.5rem; }
+}
+/* ───────── Téléphone en paysage : sceaux et scores à gauche, commandes à droite ───────── */
+@media (orientation: landscape) and (max-height: 560px) {
+  html { font-size: min(calc(16px * var(--ui)), calc(100vw / 37), calc(100svh / 13.5)); }
+  #corner { top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); right: auto; }
+  #settings-panel { left: 0; right: auto; }
+  #scores { top: calc(16px + 2.75rem + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); right: auto; width: 10.5rem; padding: 7px 12px 8px; }
+  .target { margin: 0 0 1px; font-size: 0.8rem; }
+  .row { font-size: 0.98rem; padding: 2px 0 0 1rem; }
+  .row .pts { font-size: 1.12rem; }
+  .row .bar { height: 0.4rem; margin-top: 2px; }
+  #actions { right: calc(8px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); width: 12rem; padding: 7px 12px 8px; }
+  .tally b { font-size: 1.3rem; }
+  .buttons { grid-template-columns: 1fr; gap: 8px; margin-top: 4px; }
+  .modal { padding: 16px 26px 16px; }
+  .big-title { font-size: 3.2rem; }
+  .lede { font-size: 1rem; margin-bottom: 10px; }
+  .rules-page { padding: 16px 10px 14px 24px; }
+  /* menu resserré : la table doit tenir dans la hauteur de l’écran (le titre part en dernier, voir fitModal) */
+  .overlay { padding: 8px 16px; }
+  .lengths { display: none; }
+  .length-stepper { display: grid; }
+  .menu-lengths .field-label, .menu-opponent .field-label { display: none; }
+  /* trois rangées de choix ne tiennent pas en hauteur : « Tes dés » devient un bouton à côté de la mise */
+  .menu-hand, .opp-max { display: none; }
+  .menu-modal #btn-menu-shop { display: inline-block; }
+  .menu-modal .modal-actions { flex-wrap: nowrap; gap: 8px; }
+  .menu-modal .modal-actions .btn { min-width: 0; padding-inline: 0.8em; }
+  /* deux colonnes de même hauteur : bourse (et partie à reprendre) puis adversaire à gauche, mise puis durée à droite */
+  .menu-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 8px 20px; align-items: center; }
+  .menu-left, .menu-right { display: contents; }
+  .menu-intro { grid-column: 1 / -1; }
+  .purse-badge { grid-column: 1; grid-row: 2; }
+  .resume-card { grid-column: 1; grid-row: 3; }
+  .menu-opponent { grid-column: 1; grid-row: 4; }
+  .menu-stakes { grid-column: 2; grid-row: 2 / 4; }
+  .menu-lengths { grid-column: 2; grid-row: 4; }
+  /* menu replié sur une partie en cours : la bourse et la partie côte à côte */
+  #menu[data-fold="folded"] .menu-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+  #menu[data-fold="folded"] .resume-card { grid-column: 2; grid-row: 2; }
+  .hand-go .word { display: none; }
+  .hand-go { font-size: 1.5rem; line-height: 1; }
+  .menu-grid, .menu-left, .menu-right { gap: 8px; }
+  .purse-badge { padding: 4px 2.2rem 4px 10px; gap: 8px; }
+  .pouch { width: 2.5rem; height: 2.5rem; }
+  .purse-sum b { font-size: 1.7rem; }
+  .menu-section .field-label { margin-bottom: 3px; }
+  .menu-modal .modal-actions { margin-top: 8px; }
+  .modal-actions .btn-start { min-width: 0; }
+}
+@media (max-height: 820px) {
+  html[data-ui="3"] #scores .panel-title { display: none; }
+}
+@media (max-width: 560px) {
+  .modal { padding: 24px 20px 20px; }
+  .rules-page { padding: 22px 8px 18px 20px; }
+  .rules-page .modal-body { padding-right: 12px; }
+  .rules-page .modal-actions { padding-right: 12px; }
+  .modal-actions .btn { min-height: 50px; }
+  .choice button { flex: 1 1 0; max-width: 5.5em; min-height: 44px; padding-inline: 0.3em; }
+  .controls { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .controls dt { white-space: normal; margin-top: 8px; }
+}
+@media (max-width: 380px) {
+  .overlay { padding: 8px; }
+  .modal { max-height: calc(100dvh - 16px); padding: 18px 14px 16px; }
+  .rules-page { padding: 18px 6px 14px 14px; }
+}

@@ -9,17 +9,21 @@ DOMAIN=farkle.jibhey.fr
 ROOT=/srv/sites/$DOMAIN
 SITE=/etc/caddy/sites/farkle.caddy
 
+# 0. Hors connexion, le service worker ne sert que les fichiers de sa liste CODE : chaque fichier de css/ et js/ doit y être
+missing=$(for f in css/*.css js/*.js js/ui/*.js; do grep -q "'$f'" sw.js || echo "$f"; done)
+if [ -n "$missing" ]; then echo "À ajouter à la liste CODE de sw.js (et changer VERSION) :" $missing >&2; exit 1; fi
+
 # 1. Fichiers du jeu (sans les prises audio d’origine, inutilisées), avec ce qui le rend installable :
 #    manifeste, icônes et service worker (sw.js)
 ssh "$HOST" "mkdir -p $ROOT"
-rsync -az --delete --exclude 'originaux/' --exclude '.DS_Store' index.html manifest.webmanifest sw.js icons audio "$HOST:$ROOT/"
+rsync -az --delete --exclude 'originaux/' --exclude '.DS_Store' index.html css js manifest.webmanifest sw.js icons audio "$HOST:$ROOT/"
 
-# 2. Le code du jeu est écrit dans index.html : la CSP l’autorise par son empreinte (sha256),
-#    à recalculer à chaque publication puisqu’elle change dès que le code change.
+# 2. Les modules de js/ sont autorisés par 'self' ; le seul script écrit dans index.html, l’importmap, l’est par son
+#    empreinte (sha256), recalculée à chaque publication puisqu’elle change dès que la carte change.
 HASHES=$(python3 - <<'EOF'
 import base64, hashlib, re
 html = open('index.html', encoding='utf-8').read()
-for body in re.findall(r'<script[^>]*>(.*?)</script>', html, re.S):
+for body in re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', html, re.S):
     print("'sha256-%s'" % base64.b64encode(hashlib.sha256(body.encode()).digest()).decode(), end=' ')
 EOF
 )
