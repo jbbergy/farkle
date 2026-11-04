@@ -116,10 +116,10 @@ export function stopTalk() {
   talk.current = null;
   talk.busyUntil = 0;
 }
-// Réaction d’un client à un coup. Un Farkle et la fin de la partie font toujours réagir quelqu’un ;
+// Réaction d’un client à un coup. Un Farkle, un abandon et la fin de la partie font toujours réagir quelqu’un ;
 // les autres coups seulement de temps en temps (`chance`), jamais deux fois de suite.
 // Une réaction coupe une anecdote en cours.
-const MUST_REACT = new Set(['farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier']);
+const MUST_REACT = new Set(['farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier', 'abandon']);
 export function react(cat, chance = 1, delay = 700, moment = OWN_MOMENT[cat]) {
   if (!audio.ctx || !audio.on.voices) return;
   const now = performance.now(), speaking = now < talk.busyUntil && talk.current && !talk.current.anecdote;

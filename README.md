@@ -65,13 +65,16 @@ Le menu propose quatre adversaires (`OPPONENTS` dans `js/adversaires.js`) : Kuba
 et le Tavernier, du plus facile au plus coriace. Chacun a sa façon de jouer (`risk`, `slip`), sa mise maximale,
 son sac de dés spéciaux, la couleur de ses dés et ses répliques, écrites (menu, fin de partie) et dites
 (`OPP_TALK` dans `js/repliques.js`, fichiers `audio/voix/<adversaire>_<moment>_<n>.mp3`) : début de partie, Farkle, gros tour, beau ou mauvais lancer,
-beau lancer du joueur, relance risquée, fin de partie, et impatience quand le joueur tarde (20 s, puis 40 s).
+beau lancer du joueur, relance risquée, abandon, fin de partie, et impatience quand le joueur tarde (20 s, puis 40 s).
 Une réplique écrite sans fichier audio est simplement sautée. Les saluts qui laissent la main au joueur
 (« les dés sont à toi », `PLAYER_STARTS`) ne sont dits que lorsque c’est lui qui commence. Les clients ne parlent du Tavernier comme
 adversaire que lorsque c’est lui qui joue (`ONLY_VS`, `ABOUT_TAVERNIER`), et un adversaire ne commente jamais
 la partie en spectateur. Le choix est gardé dans `farkle.adversaire`.
 
 Chacun commence une partie sur deux. Dès qu’un joueur atteint l’objectif, l’autre joue un dernier tour et doit le dépasser.
+Si l’adversaire aborde son dernier tour avec 3000 points de retard ou plus (`HOPELESS` dans `js/ia.js`), il sait la partie
+perdue : il abandonne sans lancer, le dit (moment `abandon`) et la fin de partie l’annonce (`gaveUp` dans `js/adversaires.js`).
+Le joueur, lui, joue toujours son dernier tour.
 Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouverture à 500 points et trois Farkles = −500.
 
 ## Effets de la table

@@ -5,7 +5,8 @@ import { DIE_KINDS } from './des-speciaux.js';
 
 // risk : multiplie les seuils où il garde ses points (plus haut : il tente davantage) ; slip : chance de mal choisir
 // ses dés ; maxStake : sa plus forte mise ; dice : les dés spéciaux qu’il peut sortir (null : toute l’échoppe) ;
-// look : la couleur de ses dés ordinaires. Les répliques du menu et de la fin de partie sont les siennes.
+// look : la couleur de ses dés ordinaires. Les répliques du menu et de la fin de partie sont les siennes
+// (beaten : battu ; gaveUp : il abandonne son dernier tour, perdu d’avance ; wins : il gagne, avec ou sans mise).
 export const OPPONENTS = {
   palefrenier: {
     name: 'Kuba', Name: 'Kuba', full: 'Kuba, le palefrenier', short: 'Kuba', row: 'Kuba', she: false,
@@ -20,6 +21,7 @@ export const OPPONENTS = {
     credit: 'Le patron t’a glissé quelques pièces ? Moi, il me paie en avoine.',
     stakes: { 0: 'Pour l’honneur ? Tant mieux, mes gages sont maigres.', 10: 'Dix groschens ? Va pour dix !', 25: 'Vingt-cinq ? Toute ma paie du mois… Allez, au galop !' },
     lengths: ['Une chope, vite fait : les chevaux attendent leur foin.', 'Une soirée ! J’ai tout mon temps.', 'Jusqu’à l’aube ? Je dormirai dans la paille, demain.'],
+    gaveUp: 'Kuba repose les dés sans les lancer, lève les bras au ciel et te tape sur l’épaule.',
     beaten: 'Kuba tape du poing sur la table, puis éclate de rire.', wins: ['Il fourre tes pièces dans sa besace en sifflant.', 'Il pousse un hennissement de joie. Si, si.'],
   },
   vieux: {
@@ -35,6 +37,7 @@ export const OPPONENTS = {
     credit: 'Le Tavernier t’a remis à flot ? Ne gaspille pas tout, cette fois.',
     stakes: { 0: 'Pour l’honneur ? C’est ainsi qu’on apprend.', 10: 'Dix groschens. Une mise sage.', 25: 'Vingt-cinq… Voyons si tu as la main.', 50: 'Cinquante ? À mon âge, on compte ses sous… Mais soit.' },
     lengths: ['Une chope, pas plus. Mes vieux os ont besoin de repos.', 'Une soirée. Comme au bon vieux temps.', 'Jusqu’à l’aube ? De mon temps, on tenait trois nuits.'],
+    gaveUp: 'Le vieil Ota repose les dés sans les lancer : il sait reconnaître une partie perdue.',
     beaten: 'Le vieil Ota hoche la tête, beau joueur.', wins: ['Il range tes pièces une à une, sans se presser.', 'Il sourit dans sa barbe.'],
   },
   servante: {
@@ -50,6 +53,7 @@ export const OPPONENTS = {
     credit: 'Le patron t’a avancé quelques pièces ? Il ne fait jamais ça pour moi.',
     stakes: { 0: 'Pour l’honneur ? Si tu veux, mais ça ne remplit pas le tablier.', 10: 'Dix groschens ? C’est un pourboire, ça !', 25: 'Vingt-cinq : ma paie de la semaine. Joue bien !', 50: 'Cinquante ! Tu veux m’impressionner ?' },
     lengths: ['Une chope, vite fait : j’ai du service.', 'Une soirée ? Le patron va grogner.', 'Jusqu’à l’aube ! Tant pis pour la vaisselle.'],
+    gaveUp: 'Bětka repousse les dés sans les lancer, hausse les épaules et retourne servir.',
     beaten: 'Bětka tape du pied et retourne servir.', wins: ['Elle glisse tes pièces dans son tablier.', 'Elle te fait un clin d’œil et file servir.'],
   },
   tavernier: {
@@ -71,6 +75,7 @@ export const OPPONENTS = {
       100: 'Cent groschens… Ce soir, l’un de nous deux rentre les poches vides.',
     },
     lengths: ['Le temps d’une chope ? Alors ne traînons pas.', 'Une soirée entière, comme il se doit.', 'Jusqu’à l’aube ! Je mets un tonneau en perce.'],
+    gaveUp: 'Le Tavernier repousse les dés vers toi sans les lancer et remplit ta chope.',
     beaten: 'Le Tavernier grommelle et remplit ta chope.', wins: ['Il fait déjà sonner tes pièces.', 'Il bombe le torse.'],
   },
 };

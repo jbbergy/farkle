@@ -6,7 +6,7 @@ import { faceValue } from './des-speciaux.js';
 import { il, OPP } from './adversaires.js';
 import { dice } from './des.js';
 import { countValues, enumerateSubsets } from './regles.js';
-import { bankAction, bankBlock, game, rollAction, setAside } from './partie.js';
+import { bankAction, bankBlock, concede, game, rollAction, setAside } from './partie.js';
 import { sfxHot } from './sons.js';
 import { react } from './voix.js';
 import { toast, updateUI } from './ui/hud.js';
@@ -36,8 +36,19 @@ function aiShouldBank(turnAfter, remaining) {
   th *= OPP().risk * rand(0.88, 1.15);                                  // son caractère : prudent ou casse-cou
   return turnAfter >= th;
 }
+// Au Farkle, aucun retard n’est tout à fait impossible à rattraper (les dés brûlants relancent le tour sans fin),
+// mais en simulant des centaines de milliers de derniers tours, l’adversaire ne marque plus de 3000 points
+// qu’une fois sur cinquante environ (plus de 3500 : une fois sur cent). Au-delà, il jette l’éponge sans lancer.
+export const HOPELESS = 3000;
 export async function aiTurn() {
   const tk = game.token;
+  if (game.finalFrom !== null && game.scores[0] - game.scores[1] >= HOPELESS) {
+    game.aiStatus = `${CONFIG.ai} regarde les scores…`;
+    updateUI();
+    await sleep(1400);
+    if (tk === game.token) concede();
+    return;
+  }
   game.aiStatus = `${CONFIG.ai} fait rouler les dés dans sa paume…`;
   updateUI();
   if (game.finalFrom !== null) {

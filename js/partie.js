@@ -18,7 +18,7 @@ import { clearMatch, saveMatch, setPendingMatch } from './sauvegarde.js';
 import { aiTurn } from './ia.js';
 import { sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
 import { buzzBang, buzzFarkle, buzzVictory } from './vibreur.js';
-import { commentRoll, loadOppVoices, nag, playerActed, react } from './voix.js';
+import { commentRoll, loadOppVoices, nag, playerActed, react, talk } from './voix.js';
 import { frameDice, unframe } from './cadrage.js';
 import { dieTip, focusFirst, kb } from './entrees.js';
 import { fitModal } from './ui/parchemin.js';
@@ -276,7 +276,21 @@ export async function bankAction() {
   endTurn();
 }
 
-function gameOver(winner) {
+// L’adversaire jette l’éponge au début de son dernier tour, son retard étant hors de portée (HOPELESS dans ia.js) :
+// il le dit lui-même, et la fin de partie attend qu’il ait fini de parler
+export async function concede() {
+  const tk = game.token, gap = game.scores[0] - game.scores[1];
+  game.phase = 'conceding';
+  game.aiStatus = `${CONFIG.ai} repose les dés sans les lancer.`;
+  updateUI();
+  toast(`${CONFIG.ai} abandonne`, `${gap} points de retard : c’est perdu d’avance`, 'info', 2800);
+  react('abandon', 1, 500);
+  await sleep(2800);
+  for (let waited = 0; waited < 6000 && performance.now() < talk.busyUntil + 300; waited += 100) await sleep(100);
+  if (tk === game.token) gameOver(0, true);
+}
+
+function gameOver(winner, conceded = false) {
   game.phase = 'over';
   updateUI();
   const [me, him] = game.scores;
@@ -294,11 +308,13 @@ function gameOver(winner) {
   saveWallet();
   $('go-title').textContent = winner === 0 ? 'Victoire !' : 'Défaite…';
   $('go-text').textContent = winner === 0
-    ? `Tu l’emportes, ${me} points contre ${him}. ${OPP().beaten}`
+    ? `Tu l’emportes, ${me} points contre ${him}. ${conceded ? OPP().gaveUp : OPP().beaten}`
     : `${CONFIG.ai} l’emporte, ${him} points contre ${me}. ${OPP().wins[game.pot ? 0 : 1]}`;
   $('go-money').textContent = `${money} Ta bourse : ${wallet.purse} groschens.`;
   $('gameover').classList.remove('hidden');
   fitModal($('gameover').querySelector('.modal'));
   if (winner === 0) { sfxVictory(); buzzVictory(); flareCandles(1); knock(1, 350); } else sfxDefeat();
-  react(winner === 0 ? 'victoire_toi' : 'victoire_tavernier', 1, 2200);
+  // après un abandon, l’adversaire a déjà parlé : seuls les clients saluent la victoire
+  if (conceded) react('victoire_toi', 1, 2200, null);
+  else react(winner === 0 ? 'victoire_toi' : 'victoire_tavernier', 1, 2200);
 }

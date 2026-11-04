@@ -95,7 +95,8 @@ export const TALK = {
 // Ce que dit l’adversaire lui-même, assis en face du joueur (fichiers audio/voix/<adversaire>_<moment>_<n>.mp3) :
 // debut (première main), nargue (le joueur fait Farkle), deveine (il fait Farkle), gros_tour (il garde 1000 ou plus),
 // victoire, defaite, attente (le joueur tarde à jouer), beau_coup (il fait un beau lancer), mauvais_coup (son lancer
-// ne rapporte presque rien), jaloux (le joueur fait un beau lancer), tente (il relance avec un ou deux dés)
+// ne rapporte presque rien), jaloux (le joueur fait un beau lancer), tente (il relance avec un ou deux dés),
+// abandon (son dernier tour est perdu d’avance : il ne lance pas, voir concede dans partie.js)
 export const OPP_TALK = {
   tavernier: {
     debut: ['Allez, montre-moi ce que tu as dans le ventre.', 'Les dés sont à toi… pour l’instant.', 'Bienvenue à ma table, l’ami. Ici, les dés sont honnêtes… presque toujours.', 'Installe-toi. La maison ne refuse jamais un client.'],
@@ -109,6 +110,7 @@ export const OPP_TALK = {
     mauvais_coup: ['Hmm… Pas fameux, ça.', 'Bah, on a vu mieux. Mais on a vu pire.', 'Tss… Ces dés ont trop bu, ce soir.', 'Hmm. Ça ne paiera pas le tonneau, ça.'],
     jaloux: ['Pas mal… Ne t’emballe pas pour autant.', 'Tiens, tiens… La chance te sourit, ce soir.', 'Hmm… Tu ne me caches pas un dé dans ta manche, toi ?', 'Joli. Profites-en, ça ne durera pas.'],
     tente: ['Allez, encore un ! Qui ne risque rien n’a rien.', 'On ne tient pas une taverne sans prendre de risques !', 'Je relance. La maison ne recule jamais.', 'Un dernier pour la route… et pour la caisse !'],
+    abandon: ['Bon… Même la maison sait quand il faut fermer boutique. Tu as gagné, l’ami.', 'Rattraper tout ça ? Même avec mes meilleurs dés… Allez, je te sers une chope, tu l’as méritée.', 'Je range mes dés. Ce soir, la caisse est pour toi… Mais n’en parle à personne.'],
   },
   palefrenier: {
     debut: ['Allez, à nous deux ! Et que le meilleur gagne.', 'J’ai les mains pleines de foin, mais les dés, ça me connaît !', 'J’ai bouchonné six chevaux aujourd’hui. Les dés, ce sera du repos !', 'Allez, en selle ! Que la partie commence !'],
@@ -122,6 +124,7 @@ export const OPP_TALK = {
     mauvais_coup: ['Oh… Un lancer de vieille carne, ça.', 'Hmm. On fera mieux au prochain.', 'Pfff… Ces dés boitent, ce soir.', 'Bah. Même le meilleur cheval trébuche.'],
     jaloux: ['Hé ! D’où tu sors ça, toi ?', 'Pas mal… Tu as mis des fers neufs, ou quoi ?', 'Oh ! Tu caches un trèfle à quatre feuilles dans ta botte ?', 'Joli… Tu cours comme un poulain, toi !'],
     tente: ['Allez, au galop ! Je relance !', 'Qui n’est jamais tombé n’est jamais monté à cheval !', 'Hue ! Je relance, et advienne que pourra !', 'Allez, encore un saut d’obstacle !'],
+    abandon: ['Autant courir après un cheval échappé ! J’abandonne, tu as gagné.', 'Rattraper tout ça ? Même au grand galop, je n’y arriverais pas ! Bien joué.', 'Bah ! Je jette l’éponge… et je vais boire un coup pour me consoler.'],
   },
   vieux: {
     debut: ['Doucement, petit. Les dés n’aiment pas qu’on les brusque.', 'Voyons voir ce que les dés nous réservent.', 'Assieds-toi, petit. Un vieux comme moi aime la compagnie.', 'J’ai joué aux dés avant que ton père soit né. Allons-y.'],
@@ -135,6 +138,7 @@ export const OPP_TALK = {
     mauvais_coup: ['Hmm. Pas brillant. Il faudra s’en contenter.', 'Les dés sont fatigués, ce soir. Comme moi.', 'Mes doigts tremblent… Et les dés aussi, on dirait.', 'Hmm. C’est peu… Mais c’est mieux que rien.'],
     jaloux: ['Joli, petit. Mais un beau lancer ne fait pas une partie.', 'Tiens donc… Tu apprends vite.', 'Ha ! La chance des débutants. Je me souviens de la mienne.', 'Joli coup, petit. Ne le dis pas trop fort, les dés écoutent.'],
     tente: ['Allez… Une fois n’est pas coutume.', 'Je relance. Ne le dis à personne.', 'Un vieux fou de plus… Je relance.', 'À mon âge, on n’a plus grand-chose à perdre. Je relance.'],
+    abandon: ['Hmm… Un vieux sait quand la partie est jouée. Je repose les dés.', 'Il me faudrait un miracle, petit. Et les miracles, c’est pour la messe. Tu as gagné.', 'Non, non… Je ne vais pas me ridiculiser à mon âge. Bien joué, petit.'],
   },
   servante: {
     debut: ['Vite, vite ! J’ai des chopes qui attendent.', 'Allez, lance ! Et ne me fais pas perdre mon pourboire.', 'Une petite partie entre deux chopes ? Allez, j’ai cinq minutes !', 'Le patron regarde ailleurs… On peut jouer !'],
@@ -148,6 +152,7 @@ export const OPP_TALK = {
     mauvais_coup: ['Pfff… Même la vaisselle tombe mieux que ça.', 'Bon. On ne gagne pas à tous les coups.', 'Bah ! Des miettes. Comme les pourboires du bailli.', 'Pas terrible… J’aurais dû souffler dessus.'],
     jaloux: ['Oh ! Tu as triché, avoue !', 'Joli… Mais rien n’est encore joué.', 'Oh, oh ! Tu as bu la potion de la sorcière, toi ?', 'Joli… Je vais mettre de l’eau dans ta bière, moi !'],
     tente: ['Allez, je relance ! Qui ne risque rien n’a pas de pourboire !', 'Encore un, pour la route !', 'Allez, je tente ! Le patron n’en saura rien.', 'Encore ! Je sens que la chance a soif, ce soir.'],
+    abandon: ['Rattraper tout ça ? Même le patron n’y croirait pas ! J’abandonne.', 'Tant pis, je rends mon tablier ! Enfin… seulement pour cette partie.', 'Bravo ! Je ne vais pas lancer pour rien : j’ai six tables à servir.'],
   },
 };
 // [fichier, qui parle, texte] pour chaque réplique d’un adversaire
@@ -155,11 +160,11 @@ export const oppLines = (opp, moment) => OPP_TALK[opp][moment].map((text, i) => 
 // Saluts qui laissent la main au joueur (« les dés sont à toi », « lance ! ») : seulement quand c’est lui qui commence
 export const PLAYER_STARTS = new Set(['tavernier_debut_2', 'vieux_debut_1', 'servante_debut_2']);
 // Moment où l’adversaire peut répondre lui-même, pour chaque réaction des clients
-// (attente, mauvais_coup et tente : l’adversaire seul, les clients n’ont rien à en dire)
+// (attente, mauvais_coup, tente et abandon : l’adversaire seul, les clients n’ont rien à en dire)
 export const OWN_MOMENT = {
   farkle_toi: 'nargue', pot_perdu_toi: 'nargue', farkle_tavernier: 'deveine', pot_perdu_tavernier: 'deveine',
   grosse_mise_tavernier: 'gros_tour', victoire_toi: 'defaite', victoire_tavernier: 'victoire', debut: 'debut',
-  grosse_mise_toi: 'jaloux', attente: 'attente', mauvais_coup: 'mauvais_coup', tente: 'tente',
+  grosse_mise_toi: 'jaloux', attente: 'attente', mauvais_coup: 'mauvais_coup', tente: 'tente', abandon: 'abandon',
 };
 // Les clients parlent de l’adversaire du moment, jamais d’un autre : les réactions qui nomment le Tavernier
 // (ou le font passer pour ton adversaire) ne viennent que quand c’est lui qui joue ;
