@@ -76,7 +76,10 @@
   .row.active .who { color: var(--red); }
   .row .lead { border-bottom: 2px dotted var(--ink-faint); transform: translateY(-5px); }
   .row .pts { font-family: var(--f-sc); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
-  .row .bar { grid-column: 1 / -1; height: 0.2rem; background: rgba(42, 25, 12, 0.14); margin-top: 2px; border-radius: 2px; overflow: hidden; }
+  .row .bar {
+    grid-column: 1 / -1; height: 0.5rem; margin-top: 4px; border-radius: 3px; overflow: hidden;
+    background: rgba(42, 25, 12, 0.12); box-shadow: inset 0 0 0 1px rgba(42, 25, 12, 0.3);
+  }
   .row .bar i { display: block; height: 100%; width: 0; background: var(--red); transition: width 0.8s ease; }
   #row-1 .bar i { background: var(--ink-soft); }
 
@@ -112,7 +115,12 @@
   }
   .btn-ghost { background: transparent; color: var(--ink); border: 2px solid var(--ink-soft); text-shadow: none; }
   .btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
-  .btn:disabled { filter: grayscale(0.75) brightness(0.85); opacity: 0.45; cursor: not-allowed; }
+  /* bouton inactif : une place vide en pointillé, mais un texte foncé qui reste lisible sur le parchemin */
+  .btn:disabled {
+    background: rgba(42, 25, 12, 0.06); box-shadow: none; text-shadow: none; color: var(--ink-soft); cursor: not-allowed;
+    outline: 2px dashed rgba(74, 48, 25, 0.55); outline-offset: -2px;
+  }
+  .btn:disabled kbd { border-color: rgba(74, 48, 25, 0.45); }
   .btn:focus-visible, .seal-btn:focus-visible, .choice button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
   @media (hover: hover) and (pointer: fine) {
     .btn:hover:not(:disabled) { filter: brightness(1.14); transform: translateY(-1px); }
@@ -531,6 +539,7 @@
     .target { margin: 0 0 1px; font-size: 0.8rem; }
     .row { font-size: 0.98rem; padding: 2px 0 0 1rem; }
     .row .pts { font-size: 1.12rem; }
+    .row .bar { height: 0.4rem; margin-top: 2px; }
     #actions { right: calc(8px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); width: 12rem; padding: 7px 12px 8px; }
     .tally b { font-size: 1.3rem; }
     .buttons { grid-template-columns: 1fr; gap: 8px; margin-top: 4px; }
@@ -628,6 +637,7 @@
       <div class="choice size-choice" data-size-choice>
         <button data-ui="1" aria-label="Normale">A</button><button data-ui="2" aria-label="Grande">A+</button><button data-ui="3" aria-label="Très grande">A++</button>
       </div>
+      <label class="toggle"><span>Rapprocher la vue des dés</span><input type="checkbox" data-view="cadrage" checked /></label>
       <div class="panel-kicker">Son</div>
       <label class="toggle"><span>Musique</span><input type="checkbox" data-bus="music" checked /></label>
       <label class="toggle"><span>Ambiance</span><input type="checkbox" data-bus="ambience" checked /></label>
@@ -1031,7 +1041,7 @@ function decorateBoard(c, b, rng, w, h) {
   }
 }
 
-// Faces des dés : os poli jauni, fibres, crasse dans les angles, points « cercle-et-point » gravés.
+// Faces des dés : os poli jauni, fibres, crasse dans les angles, points creusés et encrés.
 const PIP_LAYOUT = {
   1: [[0.5, 0.5]],
   2: [[0.27, 0.27], [0.73, 0.73]],
@@ -1040,34 +1050,32 @@ const PIP_LAYOUT = {
   5: [[0.27, 0.27], [0.73, 0.27], [0.5, 0.5], [0.27, 0.73], [0.73, 0.73]],
   6: [[0.27, 0.25], [0.27, 0.5], [0.27, 0.75], [0.73, 0.25], [0.73, 0.5], [0.73, 0.75]],
 };
-// `ink` : couleur des points d’un dé spécial (sinon gravure brune) ; `b` : relief, facultatif
+// `ink` : couleur des points d’un dé spécial (sinon brou presque noir) ; `b` : relief, facultatif.
+// Points pleins et larges, pour se lire de loin et sur un petit écran ; le 1, plus gros, garde un cercle gravé autour.
 function drawPips(c, b, v, S, ink = null) {
   const big = v === 1;
   for (const [px, py] of PIP_LAYOUT[v]) {
     const x = px * S, y = py * S;
-    const R = (big ? 0.15 : 0.085) * S;
-    const ring = (big ? 0.024 : 0.019) * S;
-    const dot = (big ? 0.062 : 0.045) * S;
-    // couleur : gravure encrée
-    c.lineWidth = ring; c.strokeStyle = ink || 'rgba(46,26,12,0.92)';
-    c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.stroke();
-    if (big) { c.lineWidth = ring * 0.8; c.beginPath(); c.arc(x, y, R * 0.64, 0, Math.PI * 2); c.stroke(); }
-    c.strokeStyle = 'rgba(255,248,230,0.4)'; c.lineWidth = ring * 0.45;
-    c.beginPath(); c.arc(x, y, R + ring * 0.8, 0.1 * Math.PI, 0.6 * Math.PI); c.stroke();
+    const R = (big ? 0.13 : 0.088) * S;
+    // couleur : creux encré, avec un reflet sur le bord bas
+    c.strokeStyle = 'rgba(255,248,230,0.45)'; c.lineWidth = 0.012 * S;
+    c.beginPath(); c.arc(x, y, R + 0.01 * S, 0.1 * Math.PI, 0.6 * Math.PI); c.stroke();
     if (ink) c.fillStyle = ink;
     else {
-      const g = c.createRadialGradient(x - dot * 0.25, y - dot * 0.25, dot * 0.1, x, y, dot);
-      g.addColorStop(0, '#120904'); g.addColorStop(0.75, '#2c180b'); g.addColorStop(1, 'rgba(70,44,22,0.85)');
+      const g = c.createRadialGradient(x - R * 0.3, y - R * 0.3, R * 0.1, x, y, R);
+      g.addColorStop(0, '#0b0503'); g.addColorStop(0.8, '#1c0e05'); g.addColorStop(1, '#3a2312');
       c.fillStyle = g;
     }
-    c.beginPath(); c.arc(x, y, dot, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.fill();
+    if (big) {
+      c.lineWidth = 0.014 * S; c.strokeStyle = ink || 'rgba(46,26,12,0.85)';
+      c.beginPath(); c.arc(x, y, R * 1.45, 0, Math.PI * 2); c.stroke();
+    }
     // relief : creux
     if (!b) continue;
     b.save(); b.filter = `blur(${S / 256}px)`;
-    b.strokeStyle = '#000'; b.lineWidth = ring * 1.1;
-    b.beginPath(); b.arc(x, y, R, 0, Math.PI * 2); b.stroke();
-    if (big) { b.lineWidth = ring * 0.9; b.beginPath(); b.arc(x, y, R * 0.64, 0, Math.PI * 2); b.stroke(); }
-    b.fillStyle = '#000'; b.beginPath(); b.arc(x, y, dot * 1.05, 0, Math.PI * 2); b.fill();
+    b.fillStyle = '#000'; b.beginPath(); b.arc(x, y, R, 0, Math.PI * 2); b.fill();
+    if (big) { b.strokeStyle = '#000'; b.lineWidth = 0.016 * S; b.beginPath(); b.arc(x, y, R * 1.45, 0, Math.PI * 2); b.stroke(); }
     b.restore();
   }
 }
@@ -1218,6 +1226,17 @@ function generateFlame() {
   x.fillStyle = bl; x.fillRect(0, 90, 64, 30);
   return c;
 }
+// Volute de fumée : quelques ronds doux superposés, un peu irréguliers
+function generatePuff() {
+  const c = makeCanvas(128, 128), x = c.getContext('2d');
+  for (let i = 0; i < 7; i++) {
+    const px = 64 + rand(-18, 18), py = 64 + rand(-18, 18), r = rand(26, 44);
+    const g = x.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, 'rgba(255,255,255,0.22)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  }
+  return c;
+}
 function generateGlow(inner = 'rgba(255,170,90,0.75)') {
   const c = makeCanvas(128, 128), x = c.getContext('2d');
   const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -1262,8 +1281,10 @@ let camDist = 24;
 const spawnXs = [13.5, 13.5]; // distance « hors écran » d’où partent les lancers (joueur, Tavernier)
 // Zoom du joueur (molette, pincement) : facteur et décalage de la visée sur le plateau, avec leurs cibles lissées
 const ZOOM_MAX = 2.2;
-const view = { zoom: 1, targetZoom: 1, pan: new THREE.Vector3(), targetPan: new THREE.Vector3() };
-function resetView() { view.targetZoom = 1; view.targetPan.set(0, 0, 0); }
+// `ease` : vitesse du lissage (vive au doigt, plus douce pour le cadrage automatique) ; `manual` : le joueur a zoomé lui-même
+const view = { zoom: 1, targetZoom: 1, pan: new THREE.Vector3(), targetPan: new THREE.Vector3(), ease: 10, manual: false };
+function resetView() { view.targetZoom = 1; view.targetPan.set(0, 0, 0); view.ease = 5; }
+let fitLim = null; // zone de l’écran (coordonnées normalisées) où le plateau doit tenir, calculée par fitCamera()
 
 const texLoader = new THREE.TextureLoader();
 function loadTex(url, isColor) {
@@ -1300,10 +1321,11 @@ function buildEnvironment() {
   return tex;
 }
 
-// Lumières
-const hemi = new THREE.HemisphereLight(0x8a5a32, 0x120804, 0.55);
+// Lumières : la lampe principale fait un rond de lumière sur le plateau et les tapis, le reste de la table
+// reste dans la pénombre des bougies, pour que l’œil aille droit aux dés
+const hemi = new THREE.HemisphereLight(0x8a5a32, 0x120804, 0.32);
 scene.add(hemi);
-const key = new THREE.SpotLight(0xffc48a, 520, 0, 0.62, 0.95, 2);
+const key = new THREE.SpotLight(0xffc48a, 650, 0, 0.56, 0.4, 2);
 key.position.set(2.5, 16, 6.5);
 key.target.position.set(0, 0, 0.4);
 key.castShadow = true;
@@ -1319,7 +1341,7 @@ const reserveMats = []; // tapis de cuir : [joueur, Tavernier]
 const ironMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, metalness: 0.85, roughness: 0.55 });
 const waxMat = new THREE.MeshStandardMaterial({ color: 0xeadcbc, roughness: 0.55, emissive: 0x5a2a08, emissiveIntensity: 0.35 });
 const wickMat = new THREE.MeshStandardMaterial({ color: 0x0c0806, roughness: 1 });
-let flameTex, glowTex, dustTex;
+let flameTex, glowTex, dustTex, smokeTex;
 
 // Échelle des accessoires : un dé mesure 1 unité, soit environ 2 cm. Bougie de 2,4 cm de diamètre
 // sur un bougeoir de 6 cm, chope d’étain de 11 cm, pièces de 2,5 cm (comme un gros de Prague).
@@ -1361,21 +1383,94 @@ function addCandle(x, z, h, { shadow = false, intensity = 22, size = 2.2 } = {})
     light.shadow.camera.near = 0.3;
   }
   g.add(flame, halo, light);
+  // ordinateur : un cœur éclatant et un large halo très doux, comme la lumière qui bave autour d’une flamme dans la pénombre
+  // (le téléphone s’en passe : deux grands sprites transparents de plus par bougie)
+  let core = null, bloom = null;
+  if (!LOW_POWER) {
+    core = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffe6b8, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.6, fog: false }));
+    core.scale.set(0.8, 0.8, 1); core.position.y = flameY;
+    bloom = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffa050, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.14, fog: false }));
+    bloom.scale.set(4.2, 4.2, 1); bloom.position.y = flameY;
+    g.add(core, bloom);
+  }
   scene.add(g);
-  candles.push({ light, flame, halo, base: intensity, phase: rand(0, 100), wander: 1, wanderTarget: 1, timer: 0 });
+  candles.push({ light, flame, halo, core, bloom, base: intensity, phase: rand(0, 100), wander: 1, wanderTarget: 1, timer: 0 });
 }
+let gust = 0; // coup de vent sur les bougies après un Farkle, de 1 à 0
 function updateCandles(t, dt) {
+  gust = Math.max(0, gust - dt * 0.55);
   for (const c of candles) {
     c.timer -= dt;
     if (c.timer <= 0) { c.wanderTarget = rand(0.72, 1.1); c.timer = rand(0.05, 0.28); }
     c.wander += (c.wanderTarget - c.wander) * Math.min(1, dt * 9);
-    const f = c.wander * (0.93 + 0.05 * Math.sin(t * 9.1 + c.phase) + 0.03 * Math.sin(t * 23.7 + c.phase * 1.7));
+    const shiver = gust * (0.4 + 0.25 * Math.sin(t * 31 + c.phase));
+    const f = c.wander * (0.93 + 0.05 * Math.sin(t * 9.1 + c.phase) + 0.03 * Math.sin(t * 23.7 + c.phase * 1.7)) * (1 - shiver);
     c.light.intensity = c.base * f;
-    const sway = Math.sin(t * 3.1 + c.phase) * 0.02 + Math.sin(t * 7.7 + c.phase) * 0.01;
+    const sway = Math.sin(t * 3.1 + c.phase) * 0.02 + Math.sin(t * 7.7 + c.phase) * 0.01 + gust * 0.07 * Math.sin(t * 14 + c.phase);
     c.flame.scale.set(0.24 + 0.03 * Math.sin(t * 17 + c.phase), 0.42 + 0.14 * f, 1);
     c.flame.position.x = sway;
     c.halo.material.opacity = 0.3 + 0.25 * f;
+    if (c.core) { c.core.material.opacity = 0.35 + 0.3 * f; c.core.position.x = sway; }
+    if (c.bloom) c.bloom.material.opacity = 0.08 + 0.07 * f;
     c.light.position.x = sway * 4;
+  }
+}
+
+// Fumée qui monte des dés d’un Farkle, braises qui s’envolent des dés brûlants : quelques sprites réutilisés
+const FX = {
+  smoke: { life: [1.6, 2.4], size: [0.6, 2.6], rise: [0.8, 1.3], drift: 0.25, opacity: 0.85, color: 0xd2c7b8, blending: THREE.NormalBlending },
+  ember: { life: [0.9, 1.7], size: [0.6, 0.18], rise: [1.8, 3], drift: 0.7, opacity: 1, color: 0xffa040, blending: THREE.AdditiveBlending },
+};
+const fxLive = [], fxPool = { smoke: [], ember: [] };
+function emit(kind, x, y, z, delay = 0) {
+  const k = FX[kind];
+  let s = fxPool[kind].pop();
+  if (!s) {
+    s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: kind === 'smoke' ? smokeTex : dustTex, color: k.color, blending: k.blending, transparent: true, depthWrite: false, fog: false,
+    }));
+    s.userData.kind = kind;
+    scene.add(s);
+  }
+  s.visible = false;
+  s.position.set(x, y, z);
+  s.userData.p = { age: -delay, life: rand(...k.life), vx: rand(-k.drift, k.drift), vy: rand(...k.rise), vz: rand(-k.drift, k.drift), phase: rand(0, 9) };
+  fxLive.push(s);
+}
+function updateFx(dt) {
+  for (let i = fxLive.length - 1; i >= 0; i--) {
+    const s = fxLive[i], p = s.userData.p, kind = s.userData.kind, k = FX[kind];
+    p.age += dt;
+    if (p.age < 0) continue;
+    const u = p.age / p.life;
+    if (u >= 1) { s.visible = false; fxLive.splice(i, 1); fxPool[kind].push(s); continue; }
+    s.visible = true;
+    s.position.x += (p.vx + Math.sin(p.age * 3 + p.phase) * k.drift * 0.6) * dt;
+    s.position.y += p.vy * dt;
+    s.position.z += p.vz * dt;
+    const size = k.size[0] + (k.size[1] - k.size[0]) * u;
+    s.scale.set(size, size, 1);
+    // apparition rapide, extinction lente ; les braises vacillent
+    let o = k.opacity * Math.min(1, u * 6) * (1 - u);
+    if (kind === 'ember') o *= 0.6 + 0.4 * Math.sin(p.age * 25 + p.phase);
+    s.material.opacity = o;
+  }
+}
+// Farkle : les dés lancés se ternissent, un filet de fumée en monte, les bougies vacillent
+function farkleFx(list) {
+  for (const d of list) {
+    d.ashTarget = 1;
+    const p = d.mesh.position;
+    for (let i = 0; i < (LOW_POWER ? 3 : 5); i++) emit('smoke', p.x + rand(-0.2, 0.2), p.y + 0.45, p.z + rand(-0.2, 0.2), 0.2 + i * 0.22 + rand(0, 0.15));
+  }
+  gust = 1;
+}
+// Dés brûlants : les six dés rougeoient et des braises s’en envolent avant qu’ils repartent
+function hotFx(list) {
+  for (const d of list) {
+    d.heat = 1;
+    const p = d.mesh.position;
+    for (let i = 0; i < (LOW_POWER ? 5 : 9); i++) emit('ember', p.x + rand(-0.4, 0.4), p.y + rand(0, 0.4), p.z + rand(-0.4, 0.4), rand(0, 0.8));
   }
 }
 
@@ -1472,6 +1567,7 @@ function buildWorld() {
   flameTex = canvasTex(generateFlame(), true);
   glowTex = canvasTex(generateGlow(), true);
   dustTex = canvasTex(generateGlow('rgba(255,220,170,1)'), true);
+  smokeTex = canvasTex(generatePuff(), true);
   // bois procéduraux en 1024 px sur téléphone : quatre fois moins de calcul au chargement et de mémoire graphique
   const TEX = LOW_POWER ? 1024 : 2048;
 
@@ -1486,6 +1582,7 @@ function buildWorld() {
     normalMap: TEXTURES.tableNormal ? loadTex(TEXTURES.tableNormal, false) : null,
     roughness: 0.86, metalness: 0, envMapIntensity: 0.3,
   });
+  tableMat.color.setScalar(0.62); // table plus sombre que le plateau, qui se détache mieux
   const tableGeo = new THREE.PlaneGeometry(40, 48);
   tableGeo.rotateX(-Math.PI / 2);
   tableGeo.rotateY(Math.PI / 2);
@@ -1566,6 +1663,7 @@ function fitCamera() {
   const lim = fr
     ? { x0: (fr.l / W) * 2 - 1, x1: (fr.r / W) * 2 - 1, y0: 1 - (fr.b / H) * 2, y1: 1 - (fr.t / H) * 2 }
     : { x0: -0.96, x1: 0.96, y0: -0.93, y1: 0.9 };
+  fitLim = lim;
   const pts = FIT_POINTS[layout === 'portrait' ? 'portrait' : 'landscape'];
   const v = new THREE.Vector3();
   const place = (d) => { camera.position.copy(camTarget).addScaledVector(camDir, d); camera.lookAt(camTarget); camera.updateMatrixWorld(true); };
@@ -1597,7 +1695,8 @@ function applyLayout() {
   document.querySelectorAll('.overlay .modal').forEach(fitModal);
   shadowsDirty = true;
   const next = mqPortrait.matches ? 'portrait' : mqCompact.matches ? 'compact' : 'desktop';
-  if (next !== layout) {
+  const turned = next !== layout;
+  if (turned) {
     const wasPortrait = layout === 'portrait';
     layout = next;
     const portrait = layout === 'portrait';
@@ -1615,6 +1714,7 @@ function applyLayout() {
   }
   renderer.setSize(innerWidth, innerHeight);
   fitCamera();
+  if (turned && game.phase === 'choosing') frameDice(); // écran tourné pendant le choix : les dés restent cadrés
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1724,7 +1824,7 @@ function createDice() {
       linearDamping: 0.06, angularDamping: 0.09, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.25,
       collisionFilterGroup: G.DICE, collisionFilterMask: MASK_ALL,
     });
-    const d = { id: i, owner, mesh, body, mat, tint, base, kind: null, state: 'table', slot: -1, side: owner, value: 1, rest: null, inWorld: false, physics: false, entering: null, tween: null, glow: 0, lastSound: 0 };
+    const d = { id: i, owner, mesh, body, mat, tint, base, kind: null, state: 'table', slot: -1, side: owner, value: 1, rest: null, inWorld: false, physics: false, entering: null, tween: null, glow: 0, heat: 0, ash: 0, ashTarget: 0, lastSound: 0 };
     mesh.userData.die = d;
     body.die = d;
     body.addEventListener('collide', (e) => onDieCollide(d, e));
@@ -1810,13 +1910,14 @@ function tintedMaps(id, k) {
   return kindTextures.get(id);
 }
 const WHITE = new THREE.Color(1, 1, 1);
+// sans faces procédurales (textures personnalisées), le dé spécial est seulement teinté
+const baseColor = (d) => (!d.kind ? d.tint : dieFaces ? WHITE : new THREE.Color(DIE_KINDS[d.kind].body));
 function setKind(d, id) {
   if (d.kind === id) return;
   d.kind = id;
   const m = id ? kindMaps(id) : d.base;
   d.mat.map = m.map; d.mat.bumpMap = m.bumpMap;
-  // sans faces procédurales (textures personnalisées), le dé spécial est seulement teinté
-  d.mat.color.copy(!id ? d.tint : dieFaces ? WHITE : new THREE.Color(DIE_KINDS[id].body));
+  d.mat.color.copy(baseColor(d));
 }
 // Les dés spéciaux de chacun sur son jeu : la main du joueur, celle tirée au hasard pour l’adversaire
 // (sans mise, tout le monde joue avec des dés ordinaires). Les dés ordinaires de l’adversaire ont sa couleur.
@@ -2399,6 +2500,7 @@ function setAside(d) {
   const slot = slots[side].indexOf(null);
   d.state = 'pending'; d.slot = slot; d.side = side; slots[side][slot] = d;
   setInWorld(d, false);
+  frameDice();
   const q = faceUpQuat(topFace(d.mesh.quaternion).index, rand(-0.07, 0.07));
   return moveDie(d, reservePos(side, slot), q, { duration: 430, arc: 1.4 }).then((done) => {
     if (done) sfxPlace('leather');
@@ -2408,6 +2510,7 @@ function setAside(d) {
 function returnToBoard(d) {
   slots[d.side][d.slot] = null;
   d.slot = -1; d.state = 'table';
+  frameDice();
   return moveDie(d, d.rest.pos, d.rest.quat, { duration: 380, arc: 1.1 }).then((done) => {
     if (done) sfxPlace('wood');
     if (done && d.state === 'table') { placeBodyAtMesh(d); setInWorld(d, true); d.body.sleep(); }
@@ -2469,7 +2572,9 @@ function beginTurn(p) {
   useSet(p);
   slots[p].fill(null);
   for (const d of dice) d.state = 'table';
+  for (const d of allDice) d.ashTarget = 0;
   restOnMat(1 - p);
+  unframe();
   updateUI();
   if (p === 1) aiTurn();
   else if (game.finalFrom !== null) { toast('Ton dernier tour', `Il te faut plus de ${game.scores[1] - game.scores[0]} points`, 'hot', 2200); sfxHot(); }
@@ -2496,6 +2601,7 @@ async function rollAction() {
     toThrow = dice.slice();
     toast('Dés brûlants !', 'Les six dés reviennent en jeu', 'hot', 1500);
     sfxHot();
+    hotFx(dice);
     if (game.current === 0) {
       carnet.hot++; game.hotTurn++; saveCarnet();
       unlock('brulants');
@@ -2507,8 +2613,10 @@ async function rollAction() {
     if (tk !== game.token) return null;
   }
   updateUI();
+  unframe();
   const ok = await throwDice(toThrow, game.current);
   if (!ok || tk !== game.token) return null;
+  frameDice();
   const counts = countValues(toThrow);
   if (!hasScore(counts)) { await farkle(); return 'farkle'; }
   if (game.current === 0 && toThrow.length === 1) unlock('tete_brulee');
@@ -2527,6 +2635,7 @@ async function farkle() {
   game.turnScore = 0;
   toast('Farkle !', lost ? `${lost} points perdus` : 'Aucun dé ne rapporte', 'farkle', 2000);
   sfxFarkle();
+  farkleFx(dice.filter((d) => d.state === 'table'));
   const who = game.current, me = who === 0;
   if (lost >= 500) react(me ? 'pot_perdu_toi' : 'pot_perdu_tavernier', 0.9, 1100);
   else react(me ? 'farkle_toi' : 'farkle_tavernier', 1, 1100);
@@ -2767,7 +2876,8 @@ const HORNS_SVG = '<path class="dot" d="M9.5 11.2Q6.3 9.3 6.1 4.4Q8.4 8 11.2 9.9
   '<ellipse class="dot" cx="13.5" cy="12.6" rx="0.9" ry="0.5" transform="rotate(-26 13.5 12.6)"/><path class="ring" d="M13.5 14.9A1.7 1.7 0 0 1 10.5 14.9"/>';
 const dieIcon = (v, look = null) => `<svg class="die-ico" viewBox="0 0 24 24" role="img" aria-label="${v || 'tête cornue'}"${
   look ? ` style="--body:${look.body};--pip:${look.pip}"` : ''}><rect x="1.5" y="1.5" width="21" height="21" rx="4.5"/>${v === 0 ? HORNS_SVG :
-  PIPS[v].map(([x, y]) => `<circle class="ring" cx="${x}" cy="${y}" r="2.2"/><circle class="dot" cx="${x}" cy="${y}" r="0.85"/>`).join('')}</svg>`;
+  PIPS[v].map(([x, y]) => `<circle class="dot" cx="${x}" cy="${y}" r="${v === 1 ? 2.9 : 2.1}"/>${
+    v === 1 ? `<circle class="ring" cx="${x}" cy="${y}" r="4.3"/>` : ''}`).join('')}</svg>`;
 const diceIcons = (...vs) => vs.map((v) => dieIcon(v)).join('');
 // Un dé spécial montré par sa face la plus fréquente (ou sa tête cornue)
 const kindIcon = (id) => { const k = DIE_KINDS[id]; return dieIcon(k.joker ? 0 : k.w.indexOf(Math.max(...k.w)) + 1, k); };
@@ -3793,6 +3903,7 @@ function clampPan(pan, zoom) {
 }
 // zoome d’un facteur en gardant immobile le point du plateau sous (nx, ny)
 function zoomAt(nx, ny, factor, instant = false) {
+  view.manual = true; view.ease = 10;
   const z0 = view.targetZoom, z1 = THREE.MathUtils.clamp(z0 * factor, 1, ZOOM_MAX);
   const shift = groundPointAt(nx, ny, z0, view.targetPan).sub(groundPointAt(nx, ny, z1, view.targetPan));
   view.targetZoom = z1;
@@ -3801,6 +3912,46 @@ function zoomAt(nx, ny, factor, instant = false) {
   if (instant) { view.zoom = view.targetZoom; view.pan.copy(view.targetPan); }
 }
 function zoomCenter(factor) { const c = _look.clone().project(camera); zoomAt(c.x, c.y, factor); }
+
+// ─── Cadrage automatique : une fois les dés arrêtés, la vue se resserre sur eux pour qu’on lise leurs points ;
+// dès qu’un dé est mis de côté, elle s’élargit juste assez pour montrer aussi ce dé sur son tapis (on peut le reprendre).
+// Elle revient au plateau entier au lancer suivant. Un zoom à la main la laisse tranquille jusqu’au lancer suivant.
+let autoFrame = true;
+try { autoFrame = localStorage.getItem('farkle.cadrage') !== '0'; } catch { /* cadrage par défaut */ }
+function frameDice() {
+  if (!autoFrame || view.manual || !fitLim) return;
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const d of dice) {
+    const p = d.state === 'table' && d.rest ? d.rest.pos : d.state === 'pending' ? reservePos(d.side, d.slot) : null;
+    if (!p) continue;
+    x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z);
+  }
+  if (x0 > x1) return;
+  const m = 1.1; // marge autour du centre des dés
+  const corners = [];
+  for (const x of [x0 - m, x1 + m]) for (const y of [CONFIG.tableY, 1]) for (const z of [z0 - m, z1 + m]) corners.push(new THREE.Vector3(x, y, z));
+  const center = new THREE.Vector3((x0 + x1) / 2 - camTarget.x, 0, (z0 + z1) / 2 - camTarget.z);
+  // plus fort zoom où tous les dés tiennent dans la zone libre (la caméra est remise en place après les essais)
+  const p0 = camera.position.clone(), q0 = camera.quaternion.clone(), zoom0 = camera.zoom;
+  const pan = new THREE.Vector3(), look = new THREE.Vector3(), v = new THREE.Vector3();
+  const fits = (zoom) => {
+    pan.copy(center); clampPan(pan, zoom);
+    camera.zoom = zoom; camera.updateProjectionMatrix();
+    look.copy(camTarget).add(pan);
+    camera.position.copy(look).addScaledVector(camDir, camDist); camera.lookAt(look); camera.updateMatrixWorld(true);
+    return corners.every((c) => { v.copy(c).project(camera); return v.x >= fitLim.x0 && v.x <= fitLim.x1 && v.y >= fitLim.y0 && v.y <= fitLim.y1; });
+  };
+  let lo = 1, hi = ZOOM_MAX;
+  if (fits(hi)) lo = hi;
+  else for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+  camera.zoom = zoom0; camera.updateProjectionMatrix();
+  camera.position.copy(p0); camera.quaternion.copy(q0); camera.updateMatrixWorld(true);
+  view.targetZoom = lo;
+  view.targetPan.copy(center); clampPan(view.targetPan, lo);
+  view.ease = 3;
+}
+// nouveau lancer, nouveau tour : retour au plateau entier, et le cadrage automatique reprend la main
+function unframe() { view.manual = false; resetView(); }
 canvasEl.addEventListener('wheel', (e) => {
   e.preventDefault();
   const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
@@ -3928,6 +4079,7 @@ focusRing.rotation.x = -Math.PI / 2;
 focusRing.visible = false;
 scene.add(focusRing);
 
+const ASH = new THREE.Color(0.24, 0.22, 0.21);
 function updateGlow(t, dt) {
   const focus = kb.active && kb.focus && canSelect(kb.focus) ? kb.focus : null;
   for (const d of allDice) {
@@ -3935,7 +4087,15 @@ function updateGlow(t, dt) {
     if ((d === hovered || d === focus) && canSelect(d)) target = d.state === 'pending' ? 0.22 : 0.4;
     else if (d.state === 'pending') target = 0.1 + 0.06 * Math.sin(t * 4 + d.id);
     d.glow += (target - d.glow) * Math.min(1, dt * 12);
-    d.mat.emissiveIntensity = d.glow;
+    // dés brûlants : ils rougeoient un moment (voir hotFx)
+    d.heat = Math.max(0, d.heat - dt * 0.8);
+    d.mat.emissiveIntensity = Math.max(d.glow, d.heat * 0.7);
+    // Farkle : l’os se ternit, puis retrouve sa couleur au tour suivant (voir farkleFx)
+    if (d.ash !== d.ashTarget) {
+      d.ash += (d.ashTarget - d.ash) * Math.min(1, dt * 4);
+      if (Math.abs(d.ashTarget - d.ash) < 0.003) d.ash = d.ashTarget;
+      d.mat.color.copy(baseColor(d)).lerp(ASH, d.ash * 0.7);
+    }
   }
   const m = focusRing.material;
   m.opacity += ((focus ? 0.6 + 0.2 * Math.sin(t * 5) : 0) - m.opacity) * Math.min(1, dt * 14);
@@ -3958,7 +4118,7 @@ addEventListener('keydown', (e) => {
   const myChoice = game.current === 0 && game.phase === 'choosing';
   if (k === '+' || k === '=') { e.preventDefault(); zoomCenter(1.25); }
   else if (k === '-') { e.preventDefault(); zoomCenter(0.8); }
-  else if (k === '0') { e.preventDefault(); resetView(); }
+  else if (k === '0') { e.preventDefault(); resetView(); view.manual = true; }
   else if (DIRS[k]) { e.preventDefault(); if (myChoice) moveFocus(...DIRS[k]); }
   else if (k === 'r') { e.preventDefault(); kb.active = true; if (!e.repeat && !el.roll.disabled) el.roll.click(); }
   else if (k === 'g') { e.preventDefault(); if (!e.repeat && !el.bank.disabled) el.bank.click(); }
@@ -4008,6 +4168,8 @@ $('btn-resume').addEventListener('click', () => { if (pendingMatch) { initAudio(
 $('btn-again').addEventListener('click', () => { initAudio(); startGame(); });
 function backToMenu() {
   game.token++; game.phase = 'menu'; replayJob = null; menuFresh = false;
+  unframe();
+  for (const d of allDice) d.ashTarget = 0;
   $('gameover').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden');
   document.body.dataset.screen = 'menu';
   renderMenu();
@@ -4088,11 +4250,12 @@ $('btn-rules').addEventListener('click', () => openRules('game'));
 $('btn-rules-close').addEventListener('click', closeRules);
 $('rules').addEventListener('click', (e) => { if (e.target.id === 'rules') closeRules(); });
 
-// Réglages : taille du texte, puis musique, ambiance et bruitages qui se coupent séparément (choix mémorisés)
+// Réglages : taille du texte et cadrage des dés, puis musique, ambiance et bruitages qui se coupent séparément (choix mémorisés)
 const settingsBtn = $('btn-settings'), settingsPanel = $('settings-panel');
 function syncSoundUI() {
   settingsPanel.querySelectorAll('input[data-bus]').forEach((i) => { i.checked = audio.on[i.dataset.bus]; });
   settingsPanel.querySelectorAll('input[data-house]').forEach((i) => { i.checked = house[i.dataset.house]; });
+  settingsPanel.querySelector('input[data-view]').checked = autoFrame;
 }
 function toggleSettings(open = settingsPanel.classList.contains('hidden')) {
   settingsPanel.classList.toggle('hidden', !open);
@@ -4100,8 +4263,14 @@ function toggleSettings(open = settingsPanel.classList.contains('hidden')) {
 }
 settingsBtn.addEventListener('click', () => { initAudio(); toggleSettings(); });
 settingsPanel.addEventListener('change', (e) => {
-  const { bus, house: rule } = e.target.dataset;
+  const { bus, house: rule, view: framing } = e.target.dataset;
   if (rule) { house[rule] = e.target.checked; saveHouse(); return; }
+  if (framing) {
+    autoFrame = e.target.checked;
+    try { localStorage.setItem('farkle.cadrage', autoFrame ? '1' : '0'); } catch { /* stockage indisponible */ }
+    if (!autoFrame) resetView(); else if (game.phase === 'choosing') frameDice();
+    return;
+  }
   if (!bus) return;
   initAudio(); setSound(bus, e.target.checked); syncSoundUI();
 });
@@ -4190,12 +4359,13 @@ function update(dt) {
   updateTweens(dt);
   updateCandles(elapsed, dt);
   updateDust(elapsed, dt);
+  updateFx(dt);
   updateHover();
   updateDieTip();
   updateGlow(elapsed, dt);
   updateScoresDisplay(dt);
-  // zoom du joueur, lissé
-  const k = Math.min(1, dt * 10);
+  // zoom du joueur ou cadrage automatique, lissé
+  const k = Math.min(1, dt * view.ease);
   view.zoom += (view.targetZoom - view.zoom) * k;
   view.pan.lerp(view.targetPan, k);
   if (Math.abs(camera.zoom - view.zoom) > 1e-4) { camera.zoom = view.zoom; camera.updateProjectionMatrix(); }
@@ -4228,7 +4398,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 window.FarkleDebug = {
   game, dice, allDice, diceSets, RULES, scoreAll, enumerateSubsets, hasScore, audio, kb, view, camera, renderer, talk, say, pickLine, react,
   wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderMenu, carnet, unlock, house, OPPONENTS, TALK, OPP_TALK, crowdLines, chooseLine,
-  replay: () => replayJob, throwDice,
+  replay: () => replayJob, throwDice, farkleFx, hotFx, frameDice,
   layout: () => layout,
   // position écran (px CSS) d’un dé, pour tester les clics
   screenOf: (i) => screenOf(dice[i]),

@@ -22,6 +22,10 @@ Puis ouvrir http://localhost:8765.
 - Clavier : `R` lancer, `G` garder, flèches ou `Z Q S D` pour choisir un dé, `Espace` pour le prendre, `+ − 0` pour zoomer.
 - Molette ou pincement à deux doigts : zoomer sur le plateau.
 
+Une fois les dés arrêtés, la vue se rapproche d’eux pour qu’on lise les points, puis revient au plateau entier au lancer suivant
+(`frameDice` dans `index.html`). Un zoom à la main la laisse tranquille jusqu’au lancer suivant ; le réglage
+« Rapprocher la vue des dés » la coupe (clé `farkle.cadrage`).
+
 ## Groschens et dés spéciaux
 
 Avant chaque partie, le joueur mise des groschens ; le Tavernier en met autant et le gagnant empoche le pot.
