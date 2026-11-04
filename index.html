@@ -1456,10 +1456,9 @@ function updateFx(dt) {
     s.material.opacity = o;
   }
 }
-// Farkle : les dés lancés se ternissent, un filet de fumée en monte, les bougies vacillent
+// Farkle : un filet de fumée monte des dés lancés, les bougies vacillent
 function farkleFx(list) {
   for (const d of list) {
-    d.ashTarget = 1;
     const p = d.mesh.position;
     for (let i = 0; i < (LOW_POWER ? 3 : 5); i++) emit('smoke', p.x + rand(-0.2, 0.2), p.y + 0.45, p.z + rand(-0.2, 0.2), 0.2 + i * 0.22 + rand(0, 0.15));
   }
@@ -1824,7 +1823,7 @@ function createDice() {
       linearDamping: 0.06, angularDamping: 0.09, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.25,
       collisionFilterGroup: G.DICE, collisionFilterMask: MASK_ALL,
     });
-    const d = { id: i, owner, mesh, body, mat, tint, base, kind: null, state: 'table', slot: -1, side: owner, value: 1, rest: null, inWorld: false, physics: false, entering: null, tween: null, glow: 0, heat: 0, ash: 0, ashTarget: 0, lastSound: 0 };
+    const d = { id: i, owner, mesh, body, mat, tint, base, kind: null, state: 'table', slot: -1, side: owner, value: 1, rest: null, inWorld: false, physics: false, entering: null, tween: null, glow: 0, heat: 0, lastSound: 0 };
     mesh.userData.die = d;
     body.die = d;
     body.addEventListener('collide', (e) => onDieCollide(d, e));
@@ -1910,14 +1909,13 @@ function tintedMaps(id, k) {
   return kindTextures.get(id);
 }
 const WHITE = new THREE.Color(1, 1, 1);
-// sans faces procédurales (textures personnalisées), le dé spécial est seulement teinté
-const baseColor = (d) => (!d.kind ? d.tint : dieFaces ? WHITE : new THREE.Color(DIE_KINDS[d.kind].body));
 function setKind(d, id) {
   if (d.kind === id) return;
   d.kind = id;
   const m = id ? kindMaps(id) : d.base;
   d.mat.map = m.map; d.mat.bumpMap = m.bumpMap;
-  d.mat.color.copy(baseColor(d));
+  // sans faces procédurales (textures personnalisées), le dé spécial est seulement teinté
+  d.mat.color.copy(!id ? d.tint : dieFaces ? WHITE : new THREE.Color(DIE_KINDS[id].body));
 }
 // Les dés spéciaux de chacun sur son jeu : la main du joueur, celle tirée au hasard pour l’adversaire
 // (sans mise, tout le monde joue avec des dés ordinaires). Les dés ordinaires de l’adversaire ont sa couleur.
@@ -2572,7 +2570,6 @@ function beginTurn(p) {
   useSet(p);
   slots[p].fill(null);
   for (const d of dice) d.state = 'table';
-  for (const d of allDice) d.ashTarget = 0;
   restOnMat(1 - p);
   unframe();
   updateUI();
@@ -4079,7 +4076,6 @@ focusRing.rotation.x = -Math.PI / 2;
 focusRing.visible = false;
 scene.add(focusRing);
 
-const ASH = new THREE.Color(0.24, 0.22, 0.21);
 function updateGlow(t, dt) {
   const focus = kb.active && kb.focus && canSelect(kb.focus) ? kb.focus : null;
   for (const d of allDice) {
@@ -4090,12 +4086,6 @@ function updateGlow(t, dt) {
     // dés brûlants : ils rougeoient un moment (voir hotFx)
     d.heat = Math.max(0, d.heat - dt * 0.8);
     d.mat.emissiveIntensity = Math.max(d.glow, d.heat * 0.7);
-    // Farkle : l’os se ternit, puis retrouve sa couleur au tour suivant (voir farkleFx)
-    if (d.ash !== d.ashTarget) {
-      d.ash += (d.ashTarget - d.ash) * Math.min(1, dt * 4);
-      if (Math.abs(d.ashTarget - d.ash) < 0.003) d.ash = d.ashTarget;
-      d.mat.color.copy(baseColor(d)).lerp(ASH, d.ash * 0.7);
-    }
   }
   const m = focusRing.material;
   m.opacity += ((focus ? 0.6 + 0.2 * Math.sin(t * 5) : 0) - m.opacity) * Math.min(1, dt * 14);
@@ -4169,7 +4159,6 @@ $('btn-again').addEventListener('click', () => { initAudio(); startGame(); });
 function backToMenu() {
   game.token++; game.phase = 'menu'; replayJob = null; menuFresh = false;
   unframe();
-  for (const d of allDice) d.ashTarget = 0;
   $('gameover').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden');
   document.body.dataset.screen = 'menu';
   renderMenu();
