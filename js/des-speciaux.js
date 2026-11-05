@@ -1,7 +1,8 @@
 // Dés spéciaux de l’échoppe : nom, prix, chances de chaque face, couleurs et textes.
 
 // Achetés avec des groschens dans l’échoppe du menu ; le joueur en met jusqu’à six dans sa main,
-// les autres dés restent ordinaires. Le Tavernier joue toujours avec des dés ordinaires.
+// les autres dés restent ordinaires. Quand on mise, l’adversaire en tire aussi quelques-uns de son sac
+// (pickTavernHand, dans adversaires.js) ; pour l’honneur, tout le monde joue avec des dés ordinaires.
 // w : chances sur 100 de chaque face, du 1 au 6. joker : face gravée d’une tête cornue, qui remplace n’importe quel chiffre.
 // desc : texte de l’échoppe ; effect : résumé court, dans la bulle qui s’affiche en jeu au-dessus du dé.
 export const DIE_CATS = ['Diableries', 'Reliques', 'Dés pipés', 'Curiosités'];
