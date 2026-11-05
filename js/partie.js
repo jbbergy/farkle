@@ -7,7 +7,8 @@ import { faceValue } from './des-speciaux.js';
 import { OPP, pickTavernHand } from './adversaires.js';
 import { CREDIT, MIN_STAKE, saveWallet, wallet } from './bourse.js';
 import { layout } from './scene.js';
-import { bangTable, blowCandles, flareCandles, hotFx } from './decor.js';
+import { bangTable, blowCandles, flareCandles } from './decor.js';
+import { armBug, hotEvent, rollEvent } from './evenements.js';
 import {
   dice, equipDice, faceUpQuat, moveDie, placeBodyAtMesh, restOnMat, setInWorld, topFace, useSet
 } from './des.js';
@@ -29,6 +30,7 @@ export const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, t
   // starter : qui a ouvert la partie ; finalFrom : qui a atteint l’objectif le premier (l’autre joue alors son dernier tour)
   starter: 0, turns: 0, finalFrom: null, house: {}, opened: [true, true], farkleRun: [0, 0],
   // pour les hauts faits : Farkles du joueur et plus gros retard de la partie, dés brûlants du tour en cours
+  // (trace.bug : l’insecte est déjà passé, il ne revient pas même si la partie est reprise)
   trace: { farkles: 0, deficit: 0 }, hotTurn: 0 };
 
 // ─── Règles de la maison (réglages, valables dès la partie suivante) ───
@@ -126,6 +128,7 @@ export function startGame(resume = null) {
   equipDice(0); equipDice(1);
   $('menu').classList.add('hidden'); $('gameover').classList.add('hidden'); $('hud').classList.remove('hidden');
   document.body.dataset.screen = 'game';
+  armBug(); // l’insecte passera peut-être pendant la partie
   beginTurn(resume ? resume.current : game.starter);
   // l’adversaire salue (une nouvelle partie), une fois ses répliques chargées
   const tk = game.token;
@@ -175,7 +178,7 @@ export async function rollAction() {
     toThrow = dice.slice();
     toast('Dés brûlants !', 'Les six dés reviennent en jeu', 'hot', 1500);
     sfxHot();
-    hotFx(dice);
+    hotEvent(dice); // braises, et l’embrasement du plateau si les événements de la table sont activés
     if (game.current === 0) {
       carnet.hot++; game.hotTurn++; saveCarnet();
       unlock('brulants');
@@ -195,7 +198,9 @@ export async function rollAction() {
   if (!hasScore(counts)) { await farkle(); return 'farkle'; }
   if (game.current === 0 && toThrow.length === 1) unlock('tete_brulee');
   commentRoll(counts, toThrow.length);
-  if (Math.max(...enumerateSubsets(counts).map((s) => s.score)) >= EXCEPTIONAL) knock(0.8, 260);
+  // grande combinaison : son événement (qui fait parfois déjà sauter les chopes)
+  const banged = rollEvent(counts, toThrow);
+  if (!banged && Math.max(...enumerateSubsets(counts).map((s) => s.score)) >= EXCEPTIONAL) knock(0.8, 260);
   game.phase = 'choosing';
   game.clickable = clickableValues(counts);
   if (game.current === 0 && kb.active) focusFirst();

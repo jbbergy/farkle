@@ -91,11 +91,17 @@ const hemi = new THREE.HemisphereLight(HEMI_SKY, 0x120804, HEMI);
 scene.add(hemi);
 // La salle suit les bougies (voir updateCandles) : plus chaude et plus claire quand elles s’embrasent (`glow`),
 // plus sombre au dernier tour (`dusk`) ; le rond de lumière sur les dés ne change pas
+// Les événements de la table (js/evenements.js) y ajoutent l’aube (`dawn`) et l’éclipse (`eclipse`), de 0 à 1
+export const roomFx = { dawn: 0, eclipse: 0 };
+const HEMI_DAWN = new THREE.Color(0xffc8a8), HEMI_ECLIPSE = new THREE.Color(0x6a0c06), KEY_COLOR = new THREE.Color(0xffc48a), KEY_ECLIPSE = new THREE.Color(0xff3a20);
 export function setRoomLight({ glow, dusk }) {
-  hemi.intensity = HEMI * (1 - 0.55 * dusk) * (1 + 1.1 * glow);
-  hemi.color.copy(HEMI_SKY).lerp(HEMI_WARM, glow);
+  const { dawn, eclipse } = roomFx;
+  hemi.intensity = HEMI * (1 - 0.55 * dusk) * (1 + 1.1 * glow) * (1 + 3 * dawn) * (1 - 0.5 * eclipse);
+  hemi.color.copy(HEMI_SKY).lerp(HEMI_WARM, glow).lerp(HEMI_DAWN, dawn).lerp(HEMI_ECLIPSE, eclipse);
+  key.intensity = KEY * (1 - 0.6 * eclipse);
+  key.color.copy(KEY_COLOR).lerp(KEY_ECLIPSE, eclipse);
 }
-const key = new THREE.SpotLight(0xffc48a, 650, 0, 0.56, 0.4, 2);
+const KEY = 650, key = new THREE.SpotLight(0xffc48a, KEY, 0, 0.56, 0.4, 2);
 key.position.set(2.5, 16, 6.5);
 key.target.position.set(0, 0, 0.4);
 key.castShadow = true;

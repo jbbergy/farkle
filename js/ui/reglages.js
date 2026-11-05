@@ -1,4 +1,4 @@
-// Réglages : taille du texte, cadrage des dés, sons, voix et règles de la maison.
+// Réglages : taille du texte, cadrage des dés, événements de la table, sons, voix et règles de la maison.
 
 import { isCoarse } from '../config.js';
 import { $ } from '../outils.js';
@@ -9,6 +9,7 @@ import { audio, initAudio, setSound } from '../sons.js';
 import { chooseLine, playAnecdote, say, talk } from '../voix.js';
 import { autoFrame, frameDice, setAutoFrame } from '../cadrage.js';
 import { canVibrate, setVibrations, vibrations } from '../vibreur.js';
+import { setTableEvents, tableEvents } from '../evenements.js';
 
 // Réglages : taille du texte et cadrage des dés, puis musique, ambiance et bruitages qui se coupent séparément (choix mémorisés)
 export const settingsBtn = $('btn-settings'), settingsPanel = $('settings-panel');
@@ -16,6 +17,7 @@ function syncSoundUI() {
   settingsPanel.querySelectorAll('input[data-bus]').forEach((i) => { i.checked = audio.on[i.dataset.bus]; });
   settingsPanel.querySelectorAll('input[data-house]').forEach((i) => { i.checked = house[i.dataset.house]; });
   settingsPanel.querySelector('input[data-view]').checked = autoFrame;
+  settingsPanel.querySelector('input[data-fx]').checked = tableEvents;
   const vibe = settingsPanel.querySelector('input[data-vibe]');
   if (vibe) vibe.checked = vibrations;
 }
@@ -47,8 +49,9 @@ export function initSettings() {
   if (!canVibrate) $('vibe-toggle').remove(); // ordinateur, iPhone : rien à faire vibrer
   settingsBtn.addEventListener('click', () => { initAudio(); toggleSettings(); });
   settingsPanel.addEventListener('change', (e) => {
-    const { bus, house: rule, view: framing, vibe } = e.target.dataset;
+    const { bus, house: rule, view: framing, vibe, fx } = e.target.dataset;
     if (rule) { house[rule] = e.target.checked; saveHouse(); return; }
+    if (fx !== undefined) { setTableEvents(e.target.checked); return; }
     if (vibe !== undefined) { setVibrations(e.target.checked); return; }
     if (framing) {
       setAutoFrame(e.target.checked);

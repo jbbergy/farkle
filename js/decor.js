@@ -136,13 +136,16 @@ export function updateEmbers(dt) {
     s.material.opacity = Math.min(1, u * 6) * (1 - u) * (0.6 + 0.4 * Math.sin(p.age * 25 + p.phase));
   }
 }
-// Dés brûlants : les six dés rougeoient et des braises s’en envolent avant qu’ils repartent
-export function hotFx(list) {
+// Dés brûlants : les six dés rougeoient et des braises s’en envolent avant qu’ils repartent ;
+// `blaze` (événements de la table) : une gerbe bien plus fournie, et tout le plateau crache des braises
+export function hotFx(list, blaze = false) {
+  const n = (LOW_POWER ? 5 : 9) * (blaze ? 2.5 : 1);
   for (const d of list) {
     d.heat = 1;
     const p = d.mesh.position;
-    for (let i = 0; i < (LOW_POWER ? 5 : 9); i++) emitEmber(p.x + rand(-0.4, 0.4), p.y + rand(0, 0.4), p.z + rand(-0.4, 0.4), rand(0, 0.8));
+    for (let i = 0; i < n; i++) emitEmber(p.x + rand(-0.4, 0.4), p.y + rand(0, 0.4), p.z + rand(-0.4, 0.4), rand(0, 0.8));
   }
+  if (blaze) for (let i = 0; i < (LOW_POWER ? 45 : 90); i++) emitEmber(rand(-7, 7), rand(0, 0.3), rand(-4.6, 4.6), rand(0, 1.3));
 }
 
 // Bourse de pièces, renvoyée en groupe pour être placée selon la mise en page (placeSideProps)

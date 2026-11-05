@@ -61,13 +61,15 @@ export function chooseLine(cat, moment = OWN_MOMENT[cat]) {
 const VOICE_MIX = {
   reaction: { gain: 0.95, dry: 1, wet: 0.12, lowpass: 0, duck: 0.45 },
   anecdote: { gain: 0.5, dry: 0.65, wet: 0.35, lowpass: 4200, duck: 0.75 },
+  // crié de loin, au fond de la salle (le « Merci ! » du Tavernier derrière son comptoir)
+  far: { gain: 0.6, dry: 0.5, wet: 0.45, lowpass: 3200, duck: 0.8 },
 };
-export function say(line, anecdote = false) {
+export function say(line, anecdote = false, mixName = anecdote ? 'anecdote' : 'reaction') {
   if (!line) return false;
   const [id, who] = line, buf = talk.buffers[id];
   if (!buf || !audio.ctx || !audio.on.voices) return false;
   stopTalk();
-  const { ctx } = audio, mix = VOICE_MIX[anecdote ? 'anecdote' : 'reaction'];
+  const { ctx } = audio, mix = VOICE_MIX[mixName];
   const src = ctx.createBufferSource();
   src.buffer = buf;
   const g = ctx.createGain(); g.gain.value = mix.gain;
@@ -116,10 +118,10 @@ export function stopTalk() {
   talk.current = null;
   talk.busyUntil = 0;
 }
-// Réaction d’un client à un coup. Un Farkle, un abandon et la fin de la partie font toujours réagir quelqu’un ;
+// Réaction d’un client à un coup. Un Farkle, un abandon, l’insecte et la fin de la partie font toujours réagir quelqu’un ;
 // les autres coups seulement de temps en temps (`chance`), jamais deux fois de suite.
 // Une réaction coupe une anecdote en cours.
-const MUST_REACT = new Set(['farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier', 'abandon']);
+const MUST_REACT = new Set(['farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier', 'abandon', 'insecte']);
 export function react(cat, chance = 1, delay = 700, moment = OWN_MOMENT[cat]) {
   if (!audio.ctx || !audio.on.voices) return;
   const now = performance.now(), speaking = now < talk.busyUntil && talk.current && !talk.current.anecdote;

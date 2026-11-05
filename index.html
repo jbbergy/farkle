@@ -20,6 +20,7 @@
 </head>
 <body data-screen="menu">
 <canvas id="scene"></canvas>
+<div id="fx" aria-hidden="true"></div>
 <div class="vignette"></div>
 
 <div id="hud" class="hidden">
@@ -57,6 +58,7 @@
         <button data-ui="1" aria-label="Normale">A</button><button data-ui="2" aria-label="Grande">A+</button><button data-ui="3" aria-label="Très grande">A++</button>
       </div>
       <label class="toggle"><span>Rapprocher la vue des dés</span><input type="checkbox" data-view="cadrage" checked /></label>
+      <label class="toggle"><span>Événements de la table</span><input type="checkbox" data-fx checked /></label>
       <div class="panel-kicker">Son</div>
       <label class="toggle"><span>Musique</span><input type="checkbox" data-bus="music" checked /></label>
       <label class="toggle"><span>Ambiance</span><input type="checkbox" data-bus="ambience" checked /></label>

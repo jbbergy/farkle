@@ -13,6 +13,7 @@ import {
 } from './scene.js';
 import { buildWorld, hotFx, updateCandles, updateDust, updateEmbers } from './decor.js';
 import { world } from './physique.js';
+import { initEvents, testBug, testEvent, updateEvents } from './evenements.js';
 import { allDice, applyOppLook, createDice, dice, diceSets, equipDice, layoutDiceAtRest } from './des.js';
 import { replayJob, sim, throwDice, updateReplay } from './lancer.js';
 import { countValues, enumerateSubsets, hasScore, scoreAll } from './regles.js';
@@ -66,6 +67,7 @@ function update(dt) {
   updateMood(dt);
   updateDust(elapsed, dt);
   updateEmbers(dt);
+  const shake = updateEvents(dt);
   updateHover();
   updateDieTip();
   updateGlow(elapsed, dt);
@@ -80,6 +82,7 @@ function update(dt) {
   camera.position.copy(_look).addScaledVector(camDir, camDist);
   camera.position.x += Math.sin(elapsed * 0.21) * 0.07;
   camera.position.z += Math.sin(elapsed * 0.17) * 0.05;
+  camera.position.add(shake); // la table tremble (événements de la table)
   camera.lookAt(_look);
 }
 
@@ -93,6 +96,7 @@ initSettings();
 addEventListener('resize', applyLayout);
 
 buildWorld();
+initEvents();
 createDice();
 applyOppLook();
 layoutDiceAtRest();
@@ -113,6 +117,8 @@ window.FarkleDebug = {
   game, dice, allDice, diceSets, RULES, scoreAll, enumerateSubsets, hasScore, audio, kb, view, camera, renderer, talk, say, pickLine, react,
   wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderMenu, carnet, unlock, house, OPPONENTS, TALK, OPP_TALK, crowdLines, chooseLine,
   replay: () => replayJob, throwDice, hotFx, frameDice,
+  // événements de la table : event('grace' | 'aube' | 'tournee' | 'tremblement' | 'hot', n), bug()
+  event: testEvent, bug: testBug,
   layout: () => layout,
   // position écran (px CSS) d’un dé, pour tester les clics
   screenOf: (i) => screenOf(dice[i]),

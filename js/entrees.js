@@ -8,6 +8,7 @@ import { camera, canvasEl, resetView, scene, view } from './scene.js';
 import { allDice, dice } from './des.js';
 import { bankAction, canSelect, game, rollAction, toggleDie } from './partie.js';
 import { clampPan, groundPointAt, toNdc, zoomAt, zoomCenter } from './cadrage.js';
+import { catchBug } from './evenements.js';
 import { kindIcon } from './ui/icones.js';
 import { el } from './ui/hud.js';
 import { closeRules } from './ui/page-regles.js';
@@ -177,6 +178,7 @@ export function initInput() {
   canvasEl.addEventListener('pointerleave', () => { pointerInside = false; pointerDirty = true; });
   canvasEl.addEventListener('click', (e) => {
     if (performance.now() - lastPinchEnd < 350) return; // fin d’un pincement, pas un toucher
+    if (catchBug(e.clientX, e.clientY)) return; // l’insecte passe avant les dés
     setNdc(e);
     const d = pickDie() || nearestSelectable(e.clientX, e.clientY, isCoarse ? 42 : 12);
     if (d && canSelect(d)) toggleDie(d);
