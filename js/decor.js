@@ -68,20 +68,31 @@ function addCandle(x, z, h, { shadow = false, intensity = 22, size = 2.2 } = {})
     g.add(core, bloom);
   }
   scene.add(g);
-  candles.push({ light, flame, halo, core, bloom, base: intensity, phase: rand(0, 100), wander: 1, wanderTarget: 1, timer: 0 });
+  candles.push({ group: g, flameY, light, flame, halo, core, bloom, base: intensity, phase: rand(0, 100), wander: 1, wanderTarget: 1, timer: 0 });
 }
 let gust = 0; // coup de vent sur les bougies après un Farkle, de 1 à 0
 export function blowCandles() { gust = 1; }
 // Les bougies suivent la partie : elles s’embrasent quand le joueur garde un gros tour ou gagne (`flare`, de 1 à 0),
 // et baissent pendant le dernier tour (`dusk`, de 0 à 1, voir updateMood dans main.js)
-const mood = { flare: 0, glow: 0, dusk: 0 };
+const mood = { flare: 0, glow: 0, dusk: 0, blaze: 0, roar: 0 };
 export function flareCandles(k = 1) { mood.flare = Math.max(mood.flare, k); }
+// Flambée (trois 1) : les trois bougies montent très haut d’un coup, crachent des étincelles et retombent en deux secondes
+const _wick = new THREE.Vector3();
+export function blazeCandles() {
+  mood.blaze = 1;
+  for (const c of candles) {
+    c.group.localToWorld(_wick.set(0, c.flameY, 0));
+    for (let i = 0; i < (LOW_POWER ? 8 : 14); i++) emitEmber(_wick.x + rand(-0.3, 0.3), _wick.y + rand(0, 1.2), _wick.z + rand(-0.3, 0.3), rand(0, 0.9));
+  }
+}
 export function updateCandles(t, dt, duskOn = false) {
   gust = Math.max(0, gust - dt * 0.55);
   mood.flare = Math.max(0, mood.flare - dt * 0.22);
   mood.glow += (mood.flare - mood.glow) * Math.min(1, dt * 5); // les flammes montent en une fraction de seconde
   mood.dusk += ((duskOn ? 1 : 0) - mood.dusk) * Math.min(1, dt * 1.2);
-  const lift = 1 + 1.8 * mood.glow, dim = 1 - 0.5 * mood.dusk;
+  mood.blaze = Math.max(0, mood.blaze - dt * 0.5);
+  mood.roar += (Math.min(1, mood.blaze * 1.6) - mood.roar) * Math.min(1, dt * 9); // monte presque d’un coup, retombe en douceur
+  const lift = (1 + 1.8 * mood.glow) * (1 + 1.6 * mood.roar), dim = 1 - 0.5 * mood.dusk;
   for (const c of candles) {
     c.timer -= dt;
     if (c.timer <= 0) { c.wanderTarget = rand(0.72, 1.1); c.timer = rand(0.05, 0.28); }
@@ -91,11 +102,13 @@ export function updateCandles(t, dt, duskOn = false) {
     c.light.intensity = c.base * f * lift * dim;
     const sway = Math.sin(t * 3.1 + c.phase) * 0.02 + Math.sin(t * 7.7 + c.phase) * 0.01 + gust * 0.07 * Math.sin(t * 14 + c.phase);
     // flamme plus haute et plus large quand elle s’embrase, plus petite dans la pénombre
-    const tall = (1 + 0.75 * mood.glow) * (1 - 0.25 * mood.dusk);
-    c.flame.scale.set((0.24 + 0.03 * Math.sin(t * 17 + c.phase)) * (1 + 0.3 * mood.glow), (0.42 + 0.14 * f) * tall, 1);
+    const tall = (1 + 0.75 * mood.glow) * (1 - 0.25 * mood.dusk) * (1 + 2.6 * mood.roar);
+    const fh = (0.42 + 0.14 * f) * tall;
+    c.flame.scale.set((0.24 + 0.03 * Math.sin(t * 17 + c.phase)) * (1 + 0.3 * mood.glow) * (1 + 0.6 * mood.roar), fh, 1);
+    c.flame.position.y = c.flameY + (fh - 0.5) / 2 * mood.roar; // la flamme haute s’élève au-dessus de la mèche
     c.flame.position.x = sway;
     c.halo.material.opacity = (0.3 + 0.25 * f) * (1 + 0.6 * mood.glow) * dim;
-    c.halo.scale.setScalar(2.2 * (1 + 0.35 * mood.glow));
+    c.halo.scale.setScalar(2.2 * (1 + 0.35 * mood.glow) * (1 + 0.8 * mood.roar));
     if (c.core) { c.core.material.opacity = (0.35 + 0.3 * f) * (1 + 0.4 * mood.glow) * dim; c.core.position.x = sway; }
     if (c.bloom) c.bloom.material.opacity = (0.08 + 0.07 * f) * (1 + 1.2 * mood.glow) * dim;
     c.light.position.x = sway * 4;

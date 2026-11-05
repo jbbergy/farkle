@@ -88,13 +88,13 @@ Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouve
 - Les annonces s’animent selon leur genre (`#toast[data-kind]` dans `css/style.css`) : sceau qui s’écrase pour un Farkle,
   flamme pour les dés brûlants, pièce qui brille pour les points gardés. Le score qui change grossit un instant et
   tinte à chaque cinquantaine (`updateScoresDisplay`). Ces animations s’arrêtent si le système demande moins de mouvements.
-- Les grandes combinaisons déclenchent un événement (`js/evenements.js`) : trois 1, un rayon doré et une cloche ;
+- Les grandes combinaisons déclenchent un événement (`js/evenements.js`) : trois 1, les bougies qui s’embrasent et la salle qui acclame ;
   la suite 1→6, l’aube qui se lève et un coq ; trois paires (si le lancer marque), la taverne qui trinque ;
   quatre, cinq ou six dés pareils, la table qui tremble, puis la sciure qui tombe des poutres, puis une éclipse rouge.
   Les dés brûlants embrasent le plateau. Une fois par partie au plus, un cafard ou un cloporte traverse le plateau
   (jamais contre le Tavernier) ; l’adversaire le signale (moment `insecte`) et l’écraser rapporte 10 groschens,
   avec le « Merci ! » du Tavernier crié de loin. Le réglage « Événements de la table » (`farkle.evenements`) coupe tout cela.
-  En console : `FarkleDebug.event('grace' | 'aube' | 'tournee' | 'tremblement' | 'hot', n)` et `FarkleDebug.bug('cafard' | 'cloporte')`.
+  En console : `FarkleDebug.event('bougies' | 'aube' | 'tournee' | 'tremblement' | 'hot', n)` et `FarkleDebug.bug('cafard' | 'cloporte')`.
 - Sur téléphone, les dés vibrent à leurs chocs, plus longuement au Farkle, deux fois à la victoire (`js/vibreur.js`).
   Le réglage « Vibrations » (`farkle.vibrations`) n’apparaît que si le navigateur sait faire vibrer (pas sur iPhone).
 

@@ -17,7 +17,7 @@ const SOUNDS = {
   farkle: ['farkle.mp3'], brulants: ['des_brulants.mp3'], victoire: ['victoire.mp3'], defaite: ['defaite.mp3'],
   ambiance: ['ambiance_taverne.wav'],
   // événements de la table (voir js/evenements.js)
-  cloche: ['evt_cloche.mp3'], coq: ['evt_coq.mp3'], tournee: ['evt_tournee.mp3'], grondement: ['evt_grondement.mp3'], brasier: ['evt_brasier.mp3'],
+  acclamation: ['des_brulants.mp3'], coq: ['evt_coq.mp3'], tournee: ['evt_tournee.mp3'], grondement: ['evt_grondement.mp3'], brasier: ['evt_brasier.mp3'],
 };
 const MUSIC_URL = 'audio/musique_cromorne.mp3';
 const LEVELS = { music: 0.25, ambience: 0.8, sfx: 0.8, voices: 1 };
@@ -271,13 +271,12 @@ export function sfxFarkle() {
   synthHit(10, 'wood');
 }
 export function sfxHot() { duckMusic(2); if (!playSample('brulants', { gain: 0.5 })) synthTune([293.7, 349.2, 392, 440, 587.3], 0.08, 0.5, 0.12); }
-// Bruitage d’un événement de la table, la musique baisse le temps qu’il dure ; sans fichier, un repli pour la cloche et le grondement
+// Bruitage d’un événement de la table, la musique baisse le temps qu’il dure ; sans fichier, un repli pour le grondement
 export function sfxEvent(name, gain, seconds) {
   if (!sfxOn()) return;
   duckMusic(seconds, 0.5);
   if (playSample(name, { gain })) return;
   const t = audio.ctx.currentTime;
-  if (name === 'cloche') for (const dt of [0, 1.4, 2.8]) { tone(392, t + dt, 2.4, 0.06, 'sine'); tone(392 * 2.4, t + dt, 1.4, 0.025, 'sine'); tone(392 * 3.9, t + dt, 0.8, 0.012, 'sine'); }
   if (name === 'grondement') thump(gain, t, 0);
 }
 // L’insecte écrasé : un petit craquement sec
