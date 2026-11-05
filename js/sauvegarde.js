@@ -30,7 +30,8 @@ export function readMatch() {
         house: { ouverture: !!m.house?.ouverture, troisFarkles: !!m.house?.troisFarkles },
         opened: pair(m.opened, Boolean) || [true, true], farkleRun: pair(m.farkleRun, (v) => Math.max(0, v | 0)) || [0, 0],
         opponent: OPPONENTS[oppId(m.opponent)] ? oppId(m.opponent) : 'tavernier',
-        trace: { farkles: Math.max(0, m.trace?.farkles | 0), deficit: Math.max(0, m.trace?.deficit | 0) } };
+        trace: { farkles: Math.max(0, m.trace?.farkles | 0), deficit: Math.max(0, m.trace?.deficit | 0), bug: !!m.trace?.bug,
+          tales: Array.isArray(m.trace?.tales) ? m.trace.tales.filter((id) => typeof id === 'string').slice(0, 100) : [] } };
     }
   } catch { /* rien à reprendre */ }
   return null;

@@ -30,8 +30,9 @@ export const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, t
   // starter : qui a ouvert la partie ; finalFrom : qui a atteint l’objectif le premier (l’autre joue alors son dernier tour)
   starter: 0, turns: 0, finalFrom: null, house: {}, opened: [true, true], farkleRun: [0, 0],
   // pour les hauts faits : Farkles du joueur et plus gros retard de la partie, dés brûlants du tour en cours
-  // (trace.bug : l’insecte est déjà passé, il ne revient pas même si la partie est reprise)
-  trace: { farkles: 0, deficit: 0 }, hotTurn: 0 };
+  // (trace.bug : l’insecte est déjà passé, il ne revient pas même si la partie est reprise ;
+  // trace.tales : les anecdotes déjà racontées, qui ne reviennent pas dans la même partie)
+  trace: { farkles: 0, deficit: 0, tales: [] }, hotTurn: 0 };
 
 // ─── Règles de la maison (réglages, valables dès la partie suivante) ───
 // ouverture : il faut garder au moins 500 points en un tour pour inscrire son premier score ;
@@ -115,7 +116,7 @@ export function startGame(resume = null) {
     game.starter = 1 - carnet.starter; carnet.starter = game.starter; saveCarnet();
     game.turns = 0; game.finalFrom = null;
     game.house = { ...house }; game.opened = [!house.ouverture, !house.ouverture]; game.farkleRun = [0, 0];
-    game.trace = { farkles: 0, deficit: 0 };
+    game.trace = { farkles: 0, deficit: 0, tales: [] };
   }
   setPendingMatch(null);
   game.token++;

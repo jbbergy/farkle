@@ -97,9 +97,14 @@ export function say(line, anecdote = false, mixName = anecdote ? 'anecdote' : 'r
   duckMusic(buf.duration, mix.duck);
   return true;
 }
-// Charge l’anecdote tirée puis la dit, sauf si une réaction a commencé entre-temps (`force` : bouton « Essayer »)
+// Charge l’anecdote tirée puis la dit, sauf si une réaction a commencé entre-temps (`force` : bouton « Essayer »).
+// Pendant une partie, une anecdote n’est jamais racontée deux fois (game.trace.tales, gardé avec la partie) ;
+// quand toutes l’ont été, les clients se taisent jusqu’à la suivante
 export async function playAnecdote(force = false) {
-  const line = pickLine('anecdote');
+  const inGame = !['menu', 'over'].includes(game.phase);
+  const told = inGame ? (game.trace.tales ||= []) : [];
+  const left = crowdLines('anecdote').filter(([id]) => !told.includes(id));
+  const line = left[Math.floor(Math.random() * left.length)];
   if (!line) return false;
   const [id] = line;
   if (!talk.buffers[id]) {
@@ -108,7 +113,9 @@ export async function playAnecdote(force = false) {
     talk.buffers[id] = buf;
   }
   if (!force && performance.now() < talk.busyUntil) { delete talk.buffers[id]; return false; }
-  return say(line, true);
+  if (!say(line, true)) return false;
+  if (inGame && !told.includes(id)) told.push(id);
+  return true;
 }
 export function stopTalk() {
   if (!talk.current) return;

@@ -36,6 +36,11 @@ export const TALK = {
     ['anecdote_20', 'commere', 'La femme du boulanger se vante que son mari se lève avant le coq. C’est vrai, je l’ai vu… Il se lève avant le coq pour aller chez la veuve d’à côté. Et depuis, le coq chante deux fois chaque matin : une fois pour le jour, une fois pour la veuve.'],
     ['anecdote_21', 'vieux', 'Quand j’étais jeune, j’ai joué aux dés contre le diable, à la croisée des chemins. Il a fait trois six. Moi aussi, j’ai fait trois six… avec ses dés à lui. Il est reparti furieux. Depuis, il ne joue plus qu’avec les gens de la ville.'],
     ['anecdote_22', 'servante', 'Ce matin, un chevalier m’a demandé une chambre avec vue sur la rivière. Je lui ai donné la grange : quand il pleut, la rivière entre jusque sous le lit. Il a dit que c’était la plus belle vue de tout son voyage.'],
+    ['anecdote_23', 'voyageur', 'À la frontière, un douanier m’a fait payer une taxe sur mon chapeau, une sur mes bottes… et une sur ma barbe. Alors je me suis rasé la barbe, là, devant lui. Il m’a fait payer la taxe sur le rasoir.'],
+    ['anecdote_24', 'palefrenier', 'Le cheval du bailli n’avance que si on lui chante une chanson. Mais le bailli chante faux… Alors maintenant, il va partout à pied, et c’est le cheval qui le suit derrière, pour se moquer de lui !'],
+    ['anecdote_25', 'commere', 'Le sonneur de cloches est sourd comme un pot. Dimanche, il a sonné le glas en plein mariage. Le marié est devenu tout blanc, la mariée a fondu en larmes… Ils se sont mariés quand même. Mais depuis, ils se disputent à chaque coup de cloche.'],
+    ['anecdote_26', 'jeune', 'Pour impressionner la fille du meunier, j’ai porté deux sacs de farine à la fois. Je suis arrivé chez elle tout blanc, de la tête aux pieds. Elle a crié au fantôme… et son père m’a couru après avec une fourche jusqu’au pont.'],
+    ['anecdote_27', 'servante', 'Un marchand de passage a payé sa chambre avec une poule qui pondait des œufs d’or, à ce qu’il disait. Le patron a accepté. Ça fait trois semaines que la poule pond… des œufs tout à fait normaux. Et le marchand, lui, on ne l’a jamais revu.'],
   ],
   farkle_toi: [
     ['farkle_toi_1', 'palefrenier', 'Rien du tout ! Les dés t’ont joué un sale tour !'],
