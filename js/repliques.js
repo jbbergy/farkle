@@ -72,6 +72,16 @@ export const TALK = {
     ['trois_as_1', 'palefrenier', 'Trois as ! Vous avez vu ça ?'],
     ['trois_as_2', 'voyageur', 'Trois as sur la table ! Mille d’un coup !'],
   ],
+  // plus de trois as : la mère Ludmila n’en revient pas (voir commentRoll)
+  quatre_as: [
+    ['quatre_as_1', 'commere', 'Quatre as ! Sainte Vierge, je n’ai jamais vu ça !'],
+  ],
+  cinq_as: [
+    ['cinq_as_1', 'commere', 'Cinq as ! Mais qui a béni ces dés-là ?'],
+  ],
+  six_as: [
+    ['six_as_1', 'commere', 'Six as ! Seigneur… Je vais raconter ça jusqu’à ma mort !'],
+  ],
   beau_lancer: [
     ['beau_lancer_1', 'servante', 'Oh, joli lancer, ça !'],
     ['beau_lancer_2', 'vieux', 'Ça, c’est un coup de maître !'],

@@ -91,6 +91,7 @@ Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouve
 - Les grandes combinaisons déclenchent un événement (`js/evenements.js`) : trois 1, les bougies qui s’embrasent et la salle qui acclame ;
   la suite 1→6, l’aube qui se lève et un coq ; trois paires (si le lancer marque), la taverne qui trinque ;
   quatre, cinq ou six dés pareils, la table qui tremble, puis la sciure qui tombe des poutres, puis une éclipse rouge.
+  Plus de trois as font toujours s’écrier la mère Ludmila (`quatre_as`, `cinq_as`, `six_as`, même sans ces événements).
   Les dés brûlants embrasent le plateau. Une fois par partie au plus, un cafard ou un cloporte traverse le plateau
   (jamais contre le Tavernier) ; l’adversaire le signale (moment `insecte`) et l’écraser rapporte 10 groschens,
   avec le « Merci ! » du Tavernier crié de loin. Le réglage « Événements de la table » (`farkle.evenements`) coupe tout cela.

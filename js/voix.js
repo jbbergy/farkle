@@ -128,7 +128,8 @@ export function stopTalk() {
 // Réaction d’un client à un coup. Un Farkle, un abandon, l’insecte et la fin de la partie font toujours réagir quelqu’un ;
 // les autres coups seulement de temps en temps (`chance`), jamais deux fois de suite.
 // Une réaction coupe une anecdote en cours.
-const MUST_REACT = new Set(['farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier', 'abandon', 'insecte']);
+const MANY_ACES = { 4: 'quatre_as', 5: 'cinq_as', 6: 'six_as' };
+const MUST_REACT = new Set(['farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier', 'abandon', 'insecte', ...Object.values(MANY_ACES)]);
 export function react(cat, chance = 1, delay = 700, moment = OWN_MOMENT[cat]) {
   if (!audio.ctx || !audio.on.voices) return;
   const now = performance.now(), speaking = now < talk.busyUntil && talk.current && !talk.current.anecdote;
@@ -143,7 +144,9 @@ export function commentRoll(counts, n) {
   let best = 0;
   for (const s of enumerateSubsets(counts)) best = Math.max(best, s.score);
   const moment = game.current === 0 ? 'jaloux' : 'beau_coup';
-  if (counts[1] >= 3) return react('trois_as', 0.9, 700, moment);
+  // plus de trois as : c’est rare, Ludmila s’écrie toujours (l’adversaire ne parle pas à sa place)
+  if (counts[1] > 3) return react(MANY_ACES[counts[1]], 1, 700, null);
+  if (counts[1] === 3) return react('trois_as', 0.9, 700, moment);
   if (n <= 2) return react('risque_paye', 0.85, 700, moment);
   if (best >= 500) return react('beau_lancer', 0.7, 700, moment);
   if (game.current === 1 && n >= 4 && best <= 100) react('mauvais_coup', 0.6);

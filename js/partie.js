@@ -14,7 +14,7 @@ import {
 } from './des.js';
 import { cancelReplay, throwDice } from './lancer.js';
 import { clickableValues, countValues, enumerateSubsets, hasScore, scoreAll } from './regles.js';
-import { carnet, noteParts, noteResult, saveCarnet, unlock } from './carnet.js';
+import { carnet, noteAces, noteParts, noteResult, saveCarnet, unlock } from './carnet.js';
 import { clearMatch, saveMatch, setPendingMatch } from './sauvegarde.js';
 import { aiTurn } from './ia.js';
 import { sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
@@ -198,6 +198,7 @@ export async function rollAction() {
   const counts = countValues(toThrow);
   if (!hasScore(counts)) { await farkle(); return 'farkle'; }
   if (game.current === 0 && toThrow.length === 1) unlock('tete_brulee');
+  noteAces(counts);
   commentRoll(counts, toThrow.length);
   // grande combinaison : son événement (qui fait parfois déjà sauter les chopes)
   const banged = rollEvent(counts, toThrow);

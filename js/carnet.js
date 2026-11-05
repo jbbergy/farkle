@@ -31,6 +31,10 @@ export const FEATS = [
   { id: 'grand_tour', name: 'Le grand tour', desc: 'Garder 2500 points en un seul tour.' },
   { id: 'suite', name: 'La grande suite', desc: 'Garder la suite de 1 à 6.' },
   { id: 'six', name: 'Six jumeaux', desc: 'Garder six dés identiques d’un même lancer.' },
+  { id: 'trois_as', name: 'Trois as', desc: 'Sortir trois as d’un même lancer.' },
+  { id: 'quatre_as', name: 'Quatre as', desc: 'Sortir quatre as d’un même lancer.' },
+  { id: 'cinq_as', name: 'Cinq as', desc: 'Sortir cinq as d’un même lancer.' },
+  { id: 'six_as', name: 'Six as', desc: 'Sortir six as d’un même lancer.' },
   { id: 'tete_brulee', name: 'Tête brûlée', desc: 'Relancer un seul dé… et marquer.' },
   { id: 'cornu', name: 'Pacte du Cornu', desc: 'Compléter une combinaison avec la tête cornue.' },
   { id: 'main_sure', name: 'Main sûre', desc: 'Gagner une partie sans un seul Farkle.' },
@@ -69,6 +73,11 @@ export function checkPurseFeats() {
   saveCarnet();
 }
 
+// As sortis d’un même lancer du joueur, qu’il les garde ou non (la tête cornue ne compte pas pour un as)
+const ACE_FEATS = { 3: 'trois_as', 4: 'quatre_as', 5: 'cinq_as', 6: 'six_as' };
+export function noteAces(counts) {
+  if (game.current === 0 && ACE_FEATS[counts[1]]) unlock(ACE_FEATS[counts[1]]);
+}
 // Combinaisons gardées par le joueur : suite, six dés identiques, joker
 export function noteParts(parts) {
   if (game.current !== 0) return;
