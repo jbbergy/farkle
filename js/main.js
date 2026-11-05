@@ -117,7 +117,7 @@ window.FarkleDebug = {
   game, dice, allDice, diceSets, RULES, scoreAll, enumerateSubsets, hasScore, audio, kb, view, camera, renderer, talk, say, pickLine, react,
   wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderMenu, carnet, unlock, house, OPPONENTS, TALK, OPP_TALK, crowdLines, chooseLine,
   replay: () => replayJob, throwDice, hotFx, frameDice,
-  // événements de la table : event('grace' | 'aube' | 'tournee' | 'tremblement' | 'hot', n), bug()
+  // événements de la table : event('grace' | 'aube' | 'tremblement' | 'hot', n), bug()
   event: testEvent, bug: testBug,
   layout: () => layout,
   // position écran (px CSS) d’un dé, pour tester les clics

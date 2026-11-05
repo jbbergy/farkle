@@ -17,7 +17,7 @@ const SOUNDS = {
   farkle: ['farkle.mp3'], brulants: ['des_brulants.mp3'], victoire: ['victoire.mp3'], defaite: ['defaite.mp3'],
   ambiance: ['ambiance_taverne.wav'],
   // événements de la table (voir js/evenements.js)
-  acclamation: ['des_brulants.mp3'], coq: ['evt_coq.mp3'], tournee: ['evt_tournee.mp3'], grondement: ['evt_grondement.mp3'], brasier: ['evt_brasier.mp3'],
+  acclamation: ['des_brulants.mp3'], coq: ['evt_coq.mp3'], grondement: ['evt_grondement.mp3'], brasier: ['evt_brasier.mp3'],
 };
 const MUSIC_URL = 'audio/musique_cromorne.mp3';
 const LEVELS = { music: 0.25, ambience: 0.8, sfx: 0.8, voices: 1 };

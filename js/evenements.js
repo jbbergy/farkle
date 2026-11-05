@@ -104,16 +104,6 @@ const EVENTS = {
       out.lightPos.set(side * (-14 + 20 * u), 4.5, -6 + 4 * u);
     } };
   },
-  // Trois paires : la taverne trinque, les chopes sautent en rythme
-  tournee() {
-    sfxEvent('tournee', 0.8, 4);
-    flareCandles(0.6);
-    const tk = game.token;
-    [0, 420, 840].forEach((ms, i) => setTimeout(() => { if (tk === game.token && tableEvents) { bangTable(0.55 + 0.2 * i); buzzBang(); } }, ms + 150));
-    return { len: 2.4, update(u) {
-      out.light = Math.max(out.light, 120 * env(u, 0.2, 0.6)); out.lightColor.set(0xffb060); out.lightPos.set(0, 6, 0);
-    } };
-  },
   // Quatre, cinq ou six dés pareils : la table tremble ; à cinq, la sciure tombe des poutres ;
   // à six, une éclipse : tout devient rouge sombre un instant
   tremblement(c, n) {
@@ -166,7 +156,6 @@ export function rollEvent(counts, list) {
   const c = diceCenter(list);
   if (most >= 4) { start('tremblement', c, Math.min(6, most)); return true; }
   if (n === 6 && missing <= jokers) { start('aube'); return false; }
-  if (n === 6 && !jokers && counts.filter((k, v) => v && k === 2).length === 3) { start('tournee'); return true; }
   if (counts[1] + jokers >= 3) { start('bougies'); return false; }
   return false;
 }
