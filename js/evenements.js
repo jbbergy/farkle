@@ -224,8 +224,6 @@ function makeBug(type) {
   const g = new THREE.Group();
   const shell = new THREE.MeshStandardMaterial({ color: roach ? 0x6a3416 : 0x57534e, roughness: roach ? 0.28 : 0.55, metalness: 0.15, transparent: true });
   const dark = new THREE.MeshStandardMaterial({ color: roach ? 0x2a140a : 0x3a3733, roughness: 0.6, transparent: true });
-  // pattes et antennes plus claires que le corps, pour qu’on les voie sur le bois sombre
-  const limb = new THREE.MeshStandardMaterial({ color: roach ? 0x9a6234 : 0x77716a, roughness: 0.5, transparent: true });
   const L = roach ? 1.5 : 1.15;
   if (roach) {
     const body = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), shell);
@@ -254,7 +252,7 @@ function makeBug(type) {
     const a = new THREE.Group();
     a.position.set(L * (roach ? 0.58 : 0.55), 0.18, side * 0.05);
     const len = roach ? 1.2 : 0.35;
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.016, len, 5).rotateZ(-Math.PI / 2).translate(len / 2, 0, 0), limb);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.016, len, 5).rotateZ(-Math.PI / 2).translate(len / 2, 0, 0), dark);
     a.add(m); a.rotation.y = -side * 0.45; a.rotation.z = 0.2;
     g.add(a); antennae.push(a);
   }
@@ -264,7 +262,7 @@ function makeBug(type) {
     const hip = new THREE.Group();
     hip.position.set(L * (roach ? 0.25 - i * 0.24 : 0.36 - i * 0.12), 0.14, side * (roach ? 0.18 : 0.22));
     const len = roach ? 0.55 + i * 0.12 : 0.24;
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, len, 5).translate(0, -len / 2, 0), limb);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, len, 5).translate(0, -len / 2, 0), dark);
     leg.rotation.x = side * (roach ? 1.05 : 1.15);
     hip.add(leg); g.add(hip);
     legs.push({ hip, side, phase: (i + (side > 0 ? 1 : 0)) % 2 ? Math.PI : 0, base: roach ? (1 - i) * 0.5 : (3 - i) * 0.12 });
@@ -274,7 +272,7 @@ function makeBug(type) {
   g.scale.setScalar(BUG_SCALE);
   const root = new THREE.Group();
   root.add(g);
-  root.userData = { legs, antennae, mats: [shell, dark, limb], size: L * BUG_SCALE };
+  root.userData = { legs, antennae, mats: [shell, dark], size: L * BUG_SCALE };
   return root;
 }
 // Hauteur sous l’insecte : le plateau (y = 0), puis la table de chaque côté, avec la pente du bord
