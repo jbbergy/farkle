@@ -2,8 +2,7 @@
 // - La page, sa feuille de style et ses modules (css/, js/) : le réseau d’abord, pour recevoir une nouvelle version
 //   tout entière (un module ancien avec une page nouvelle casserait le jeu), la copie gardée si le réseau manque.
 // - Three.js, cannon-es (versions figées sur cdn.jsdelivr.net) et les fichiers des polices : gardés une fois pour toutes.
-// - Les sons et la feuille des polices : servis depuis la copie gardée, rafraîchie en arrière-plan.
-// - La musique est lue en flux (requêtes « Range ») : on garde le fichier entier et on en découpe les morceaux.
+// - Les sons (musique comprise) et la feuille des polices : servis depuis la copie gardée, rafraîchie en arrière-plan.
 // Changer VERSION quand les listes ci-dessous changent : l’ancienne copie est alors effacée.
 // Un fichier ajouté dans css/ ou js/ doit être ajouté à CODE (deploy.sh le vérifie), sinon le jeu ne se lance pas hors connexion.
 const VERSION = 'farkle-3';
@@ -38,7 +37,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (req.mode === 'navigate') e.respondWith(networkFirst(req, './'));
   else if (url.origin === location.origin && /\.(js|css)$/.test(url.pathname)) e.respondWith(networkFirst(req));
-  else if (url.origin === location.origin) e.respondWith(req.headers.has('range') ? fromRange(req) : staleWhileRevalidate(req));
+  else if (url.origin === location.origin) e.respondWith(staleWhileRevalidate(req));
   else if (url.hostname === 'cdn.jsdelivr.net' || url.hostname === 'fonts.gstatic.com') e.respondWith(cacheFirst(req));
   else if (url.hostname === 'fonts.googleapis.com') e.respondWith(staleWhileRevalidate(req));
 });
@@ -62,24 +61,4 @@ async function staleWhileRevalidate(req) {
   const cached = await caches.match(req);
   const fresh = fetch(req).then((res) => keep(req, res)).catch(() => null);
   return cached || (await fresh) || Response.error();
-}
-// Morceau demandé d’un fichier gardé en entier ; la première fois, le réseau répond et le fichier est gardé pour la suite
-async function fromRange(req) {
-  const full = await caches.match(req.url);
-  if (!full) {
-    caches.open(VERSION).then((c) => c.add(req.url)).catch(() => {});
-    return fetch(req);
-  }
-  const buf = await full.arrayBuffer(), size = buf.byteLength;
-  const m = /bytes=(\d*)-(\d*)/.exec(req.headers.get('range') || '');
-  const start = m && m[1] ? +m[1] : 0, end = m && m[2] ? Math.min(+m[2], size - 1) : size - 1;
-  return new Response(buf.slice(start, end + 1), {
-    status: 206,
-    headers: {
-      'Content-Type': full.headers.get('Content-Type') || 'audio/mpeg',
-      'Content-Range': `bytes ${start}-${end}/${size}`,
-      'Content-Length': String(end - start + 1),
-      'Accept-Ranges': 'bytes',
-    },
-  });
 }

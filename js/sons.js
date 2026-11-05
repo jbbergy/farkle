@@ -48,8 +48,8 @@ export function initAudio() {
   const nb = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), nd = nb.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   Object.assign(audio, { ctx, master, bus, noise: nb, voiceVerb });
+  startMusic(); // avant les autres sons : c’est le plus long à télécharger
   talk.ready = loadSounds().then(loadVoices);
-  startMusic();
 }
 // Réponse impulsionnelle d’une petite salle en bois : bruit qui décroît vite, de plus en plus sourd vers la fin
 function roomImpulse(ctx, seconds) {
@@ -113,18 +113,31 @@ function startAmbience() {
   src.start();
   audio.ambience = src;
 }
+// La musique est décodée et jouée comme les autres sons. Un lecteur <audio> branché sur Web Audio restait muet
+// sur certains appareils, sans erreur visible. Elle démarre dès qu’elle est chargée, en fondu.
+let musicLoad = null;
 function startMusic() {
-  if (!audio.ctx || !audio.on.music || document.hidden) return;
-  if (!audio.music) {
-    // élément <audio> en flux plutôt qu’un tampon décodé : 2 min de musique restent légères en mémoire
-    const elm = new Audio(MUSIC_URL);
-    elm.loop = true; elm.preload = 'auto';
-    try { audio.ctx.createMediaElementSource(elm).connect(audio.bus.music); } catch { return; }
-    audio.music = elm;
-    const g = audio.bus.music.gain, t = audio.ctx.currentTime;
-    g.cancelScheduledValues(t); g.setValueAtTime(0, t); g.linearRampToValueAtTime(LEVELS.music, t + 5);
+  if (!audio.ctx || !audio.on.music || document.hidden || audio.music) return;
+  if (!audio.buffers.musique) {
+    musicLoad ||= loadAudio(MUSIC_URL).then((buf) => {
+      if (!buf) { musicLoad = null; return; } // échec : on réessaiera au prochain geste
+      audio.buffers.musique = buf;
+      startMusic();
+    });
+    return;
   }
-  audio.music.play().catch(() => {});
+  const { ctx } = audio, t = ctx.currentTime;
+  const src = ctx.createBufferSource();
+  src.buffer = audio.buffers.musique; src.loop = true;
+  src.connect(audio.bus.music);
+  const g = audio.bus.music.gain;
+  g.cancelScheduledValues(t); g.setValueAtTime(0, t); g.linearRampToValueAtTime(LEVELS.music, t + 5);
+  src.start();
+  audio.music = src;
+}
+function stopMusic() {
+  if (!audio.music) return;
+  audio.music.stop(); audio.music.disconnect(); audio.music = null;
 }
 // Pendant le dernier tour, la salle retient son souffle : l’ambiance baisse (voir hushRoom)
 let hush = 1;
@@ -143,7 +156,7 @@ export function setSound(k, on) {
   g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(on ? level(k) : 0, t + 0.4);
   if (k === 'music') {
     if (on) startMusic();
-    else setTimeout(() => { if (!audio.on.music && audio.music) audio.music.pause(); }, 450);
+    else setTimeout(() => { if (!audio.on.music) stopMusic(); }, 450);
   }
   if (k === 'voices' && !on) stopTalk();
 }
@@ -158,7 +171,7 @@ export function duckMusic(seconds, level = 0.35) {
 }
 document.addEventListener('visibilitychange', () => {
   if (!audio.ctx) return;
-  if (document.hidden) { audio.ctx.suspend(); if (audio.music) audio.music.pause(); }
+  if (document.hidden) audio.ctx.suspend(); // tout se fige, musique comprise, et reprend où il en était
   else { audio.ctx.resume(); startMusic(); }
 });
 
