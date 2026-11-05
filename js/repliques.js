@@ -101,7 +101,8 @@ export const TALK = {
 // victoire, defaite, attente (le joueur tarde à jouer), beau_coup (il fait un beau lancer), mauvais_coup (son lancer
 // ne rapporte presque rien), jaloux (le joueur fait un beau lancer), tente (il relance avec un ou deux dés),
 // abandon (son dernier tour est perdu d’avance : il ne lance pas, voir concede dans partie.js),
-// insecte (une bestiole traverse le plateau, voir evenements.js ; jamais chez le Tavernier, qui n’en a donc pas)
+// insecte (une bestiole traverse le plateau, voir evenements.js ; jamais chez le Tavernier, qui n’en a donc pas),
+// ecrase (le joueur vient d’écraser la bestiole, juste avant le « Merci ! » du Tavernier)
 export const OPP_TALK = {
   tavernier: {
     debut: ['Allez, montre-moi ce que tu as dans le ventre.', 'Les dés sont à toi… pour l’instant.', 'Bienvenue à ma table, l’ami. Ici, les dés sont honnêtes… presque toujours.', 'Installe-toi. La maison ne refuse jamais un client.'],
@@ -131,6 +132,7 @@ export const OPP_TALK = {
     tente: ['Allez, au galop ! Je relance !', 'Qui n’est jamais tombé n’est jamais monté à cheval !', 'Hue ! Je relance, et advienne que pourra !', 'Allez, encore un saut d’obstacle !'],
     abandon: ['Autant courir après un cheval échappé ! J’abandonne, tu as gagné.', 'Rattraper tout ça ? Même au grand galop, je n’y arriverais pas ! Bien joué.', 'Bah ! Je jette l’éponge… et je vais boire un coup pour me consoler.'],
     insecte: ['Hé ! Tu as vu ça ?! Une bestiole sur la table !', 'Ouh là ! Tu as vu ça ? Même à l’écurie, on n’en a pas des comme ça !', 'Regarde ! Il y a une bête qui galope sur le plateau !'],
+    ecrase: ['Tu l’as eu ! Joli coup de sabot !', 'Ha ! Tu l’as eu ! Elle ne galopera plus, celle-là !', 'Tu l’as eu ! Bien visé, l’ami !'],
   },
   vieux: {
     debut: ['Doucement, petit. Les dés n’aiment pas qu’on les brusque.', 'Voyons voir ce que les dés nous réservent.', 'Assieds-toi, petit. Un vieux comme moi aime la compagnie.', 'J’ai joué aux dés avant que ton père soit né. Allons-y.'],
@@ -146,6 +148,7 @@ export const OPP_TALK = {
     tente: ['Allez… Une fois n’est pas coutume.', 'Je relance. Ne le dis à personne.', 'Un vieux fou de plus… Je relance.', 'À mon âge, on n’a plus grand-chose à perdre. Je relance.'],
     abandon: ['Hmm… Un vieux sait quand la partie est jouée. Je repose les dés.', 'Il me faudrait un miracle, petit. Et les miracles, c’est pour la messe. Tu as gagné.', 'Non, non… Je ne vais pas me ridiculiser à mon âge. Bien joué, petit.'],
     insecte: ['Tiens… Tu as vu ça, petit ? On a de la visite.', 'Hé hé… Une petite bête qui veut jouer aux dés avec nous.', 'Tu as vu ça ? De mon temps, elles étaient plus grosses.'],
+    ecrase: ['Hé hé… Tu l’as eu, petit. Bons réflexes.', 'Tu l’as eu ! À ton âge, j’étais aussi vif que ça.', 'Tu l’as eu. Paix à son âme… hé hé.'],
   },
   servante: {
     debut: ['Vite, vite ! J’ai des chopes qui attendent.', 'Allez, lance ! Et ne me fais pas perdre mon pourboire.', 'Une petite partie entre deux chopes ? Allez, j’ai cinq minutes !', 'Le patron regarde ailleurs… On peut jouer !'],
@@ -161,6 +164,7 @@ export const OPP_TALK = {
     tente: ['Allez, je relance ! Qui ne risque rien n’a pas de pourboire !', 'Encore un, pour la route !', 'Allez, je tente ! Le patron n’en saura rien.', 'Encore ! Je sens que la chance a soif, ce soir.'],
     abandon: ['Rattraper tout ça ? Même le patron n’y croirait pas ! J’abandonne.', 'Tant pis, je rends mon tablier ! Enfin… seulement pour cette partie.', 'Bravo ! Je ne vais pas lancer pour rien : j’ai six tables à servir.'],
     insecte: ['Ah ! Tu as vu ça ?! Une bestiole ! Le patron va encore dire que je nettoie mal !', 'Beurk ! Écrase-la, vite, avant que le patron la voie !', 'Oh non, pas encore une ! Tu as vu ça ? Elle file vers ta chope !'],
+    ecrase: ['Tu l’as eu ! Ouf… le patron n’a rien vu.', 'Beurk ! Mais bravo, tu l’as eu !', 'Tu l’as eu ! Merci, moi je n’aurais jamais osé !'],
   },
 };
 // [fichier, qui parle, texte] pour chaque réplique d’un adversaire

@@ -12,7 +12,7 @@ import { saveWallet, wallet } from './bourse.js';
 import { game } from './partie.js';
 import { sfxCoins, sfxEvent, sfxSquash } from './sons.js';
 import { buzzBang } from './vibreur.js';
-import { react, say, talk } from './voix.js';
+import { chooseLine, react, say, talk } from './voix.js';
 import { toast } from './ui/hud.js';
 
 export let tableEvents = true;
@@ -333,7 +333,18 @@ function updateBug(dt) {
   for (const l of legs) l.hip.rotation.y = l.base + Math.sin(b.gait + l.phase) * (b.type === 'cafard' ? 0.45 : 0.3);
   antennae.forEach((a, k) => { a.rotation.z = 0.2 + Math.sin(b.t * (b.paused ? 9 : 4) + k * 2) * (b.paused ? 0.25 : 0.1); });
   // l’adversaire le remarque dès qu’il monte sur le plateau
-  if (!b.said && y > -0.05) { b.said = true; react('insecte', 1, 500); }
+  if (!b.said && y > -0.05) { b.said = true; setTimeout(() => { if (!b.caught) react('insecte', 1, 0); }, 500); }
+}
+// Après l’insecte écrasé : l’adversaire salue le coup tout de suite (« Tu l’as eu ! »), quitte à couper son
+// « Tu as vu ça ?! », puis le Tavernier crie « Merci ! » de loin, derrière son comptoir, une fois qu’il a fini
+async function thankForBug(tk) {
+  await talk.ready;
+  if (tk !== game.token) return;
+  if (RULES.opponent !== 'tavernier') say(chooseLine('ecrase', 'ecrase'));
+  await new Promise((r) => setTimeout(r, 300));
+  while (talk.current && !talk.current.anecdote && performance.now() < talk.busyUntil) await new Promise((r) => setTimeout(r, 100));
+  await new Promise((r) => setTimeout(r, 300)); // un temps de souffle avant le « Merci ! »
+  if (tk === game.token) say(['tavernier_merci_1', 'tavernier'], false, 'far');
 }
 // Le joueur clique ou touche l’écran : a-t-il écrasé l’insecte ?
 export function catchBug(clientX, clientY) {
@@ -353,8 +364,8 @@ export function catchBug(clientX, clientY) {
     toast(`+${BUG_REWARD} groschens`, 'Le Tavernier te remercie', 'bank', 1800);
     sfxCoins(0.6);
   }, 250);
-  // « Merci ! », crié de loin par le Tavernier, derrière son comptoir
-  setTimeout(async () => { await talk.ready; say(['tavernier_merci_1', 'tavernier'], false, 'far'); }, 900);
+  bug.said = true;
+  thankForBug(tk);
   return true;
 }
 export const bugUnder = () => !!bug && !bug.caught;
