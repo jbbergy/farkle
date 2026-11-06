@@ -5,7 +5,7 @@
 // - Les sons (musique comprise) et la feuille des polices : servis depuis la copie gardée, rafraîchie en arrière-plan.
 // Changer VERSION quand les listes ci-dessous changent : l’ancienne copie est alors effacée.
 // Un fichier ajouté dans css/ ou js/ doit être ajouté à CODE (deploy.sh le vérifie), sinon le jeu ne se lance pas hors connexion.
-const VERSION = 'farkle-5';
+const VERSION = 'farkle-8';
 const SHELL = ['./', 'manifest.webmanifest', 'icons/icone.svg', 'icons/icone-192.png', 'icons/icone-512.png', 'icons/icone-apple.png'];
 const CODE = [
   'css/style.css',
