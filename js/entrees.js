@@ -14,6 +14,7 @@ import { el } from './ui/hud.js';
 import { closeRules } from './ui/page-regles.js';
 import { closeShop } from './ui/echoppe.js';
 import { closeCarnet } from './ui/page-carnet.js';
+import { closeOnline } from './ui/page-en-ligne.js';
 import { settingsPanel, toggleSettings } from './ui/reglages.js';
 
 export const raycaster = new THREE.Raycaster();
@@ -212,7 +213,7 @@ export function initInput() {
   el.roll.addEventListener('click', (e) => { e.currentTarget.blur(); if (game.current === 0) rollAction(); });
   el.bank.addEventListener('click', (e) => { e.currentTarget.blur(); if (game.current === 0) bankAction(); });
   addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeRules(); closeShop(); closeCarnet(); toggleSettings(false); return; }
+    if (e.key === 'Escape') { closeRules(); closeShop(); closeCarnet(); closeOnline(); toggleSettings(false); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('rules').classList.contains('hidden') || !settingsPanel.classList.contains('hidden')) return;
     if (game.phase === 'menu' || game.phase === 'over') return;

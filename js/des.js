@@ -124,9 +124,10 @@ function setKind(d, id) {
   d.mat.color.copy(!id ? d.tint : dieFaces ? WHITE : new THREE.Color(DIE_KINDS[id].body));
 }
 // Les dés spéciaux de chacun sur son jeu : la main du joueur, celle tirée au hasard pour l’adversaire
-// (sans mise, tout le monde joue avec des dés ordinaires). Les dés ordinaires de l’adversaire ont sa couleur.
+// (sans mise, tout le monde joue avec des dés ordinaires ; à deux en ligne, seul le choix du maître de la partie compte).
+// Les dés ordinaires de l’adversaire ont sa couleur.
 export function equipDice(side) {
-  const hand = !game.pot ? [] : side === 0 ? game.playerHand : game.tavernHand;
+  const hand = !game.pot && !game.online ? [] : side === 0 ? game.playerHand : game.tavernHand;
   if (side === 1) applyOppLook();
   diceSets[side].forEach((d, i) => setKind(d, hand[i] || null));
 }
@@ -161,6 +162,17 @@ export function layoutDiceAtRest() {
     d.mesh.quaternion.copy(faceUpQuat((Math.random() * 6) | 0, rand(0, Math.PI * 2)));
     placeBodyAtMesh(d); setInWorld(d, true); d.body.sleep(); storeRest(d);
   });
+}
+
+// Un dé reposé d’un coup, sans animation, sur la valeur voulue : sur le plateau (reprise d’une partie à deux) ou ailleurs
+export function poseDie(d, pos, value, onBoard) {
+  if (d.tween) { tweens.delete(d.tween); d.tween.resolve(false); d.tween = null; }
+  d.physics = false;
+  d.mesh.position.copy(pos);
+  d.mesh.quaternion.copy(faceUpQuat(FACES.findIndex((F) => F.v === value), rand(-0.3, 0.3)));
+  d.value = value;
+  setInWorld(d, false);
+  if (onBoard) { placeBodyAtMesh(d); setInWorld(d, true); d.body.sleep(); storeRest(d); }
 }
 
 // Les dés d’un joueur qui ne joue pas attendent sur son tapis, un par case

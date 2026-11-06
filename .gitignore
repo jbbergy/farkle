@@ -2,3 +2,4 @@
 .claude/
 # prises audio refusées, conservées en local seulement
 audio/originaux/
+serveur/node_modules/

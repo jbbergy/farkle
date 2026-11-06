@@ -72,7 +72,7 @@
       <p class="house-note">Elles comptent dès la prochaine partie. Les règles du jeu les expliquent.</p>
       <div class="settings-quit">
         <button type="button" class="btn btn-wood" id="btn-quit">Retour au menu</button>
-        <p>La partie est gardée : tu la reprendras depuis le menu. Seul le tour en cours est perdu.</p>
+        <p id="quit-note">La partie est gardée : tu la reprendras depuis le menu. Seul le tour en cours est perdu.</p>
       </div>
     </div>
   </div>
@@ -81,6 +81,7 @@
 <div id="die-tip" class="parchment" role="status"></div>
 <div id="toast" aria-live="polite"><div class="t-main"></div><div class="t-sub"></div></div>
 <div id="feat-toast" class="parchment" role="status" aria-live="polite"></div>
+<div id="net-banner" class="parchment hidden" role="status"><span id="net-text"></span><button class="btn btn-wax" id="btn-forfait" hidden>Gagner par forfait</button></div>
 
 <div id="menu" class="overlay">
   <div class="parchment modal menu-modal">
@@ -109,6 +110,11 @@
             <p class="resume-score" id="resume-score"></p>
             <p class="resume-info" id="resume-info" data-opt="5"></p>
             <button class="btn btn-wax" id="btn-resume">Reprendre la partie</button>
+          </div>
+          <div class="resume-card" id="online-card" hidden>
+            <div class="field-label" data-opt="5">Partie à deux en cours</div>
+            <p class="resume-info" id="online-resume-info" data-opt="5"></p>
+            <button class="btn btn-wax" id="btn-online-resume">Reprendre</button>
           </div>
           <div class="menu-section menu-hand">
             <div class="field-label" id="hand-label">Tes dés</div>
@@ -143,10 +149,18 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-wax btn-start" id="btn-start">Miser 25 groschens</button>
+      <button class="btn btn-wood" id="btn-menu-online" aria-label="Jouer à deux"><span class="long">Jouer à deux</span><span class="short" aria-hidden="true">À deux</span></button>
       <button class="btn btn-wood" id="btn-menu-shop">Échoppe</button>
       <button class="btn btn-wood" id="btn-menu-back" aria-label="Retour à la partie en cours" hidden><span class="long">Retour</span><span class="short" aria-hidden="true">‹</span></button>
       <button class="btn btn-wood" id="btn-menu-rules" aria-label="Règles du jeu"><span class="long">Règles du jeu</span><span class="short" aria-hidden="true">?</span></button>
     </div>
+  </div>
+</div>
+
+<div id="online" class="overlay hidden">
+  <div class="parchment modal online-page" role="dialog" aria-labelledby="online-title">
+    <div class="modal-body" id="online-body"></div>
+    <div class="modal-actions" id="online-actions"></div>
   </div>
 </div>
 
@@ -179,6 +193,7 @@
       <div class="ornament" data-opt="1">❦</div>
       <p class="lede" id="go-text" style="text-align:center"></p>
       <p class="lede" id="go-money" style="text-align:center"></p>
+      <p class="lede" id="go-rematch" style="text-align:center" role="status"></p>
     </div>
     <div class="modal-actions">
       <button class="btn btn-wax" id="btn-again">Nouvelle partie</button>

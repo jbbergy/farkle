@@ -24,9 +24,9 @@ export function updateUI() {
   el.selScore.textContent = sel.count ? (sel.valid ? `+${sel.score}` : '✗') : '—';
   el.selScore.classList.toggle('bad', sel.count > 0 && !sel.valid);
   const left = dice.filter((d) => d.state === 'table').length;
-  const canRoll = mine && (game.phase === 'idle' || (game.phase === 'choosing' && sel.valid));
+  const canRoll = mine && !game.bloque && (game.phase === 'idle' || (game.phase === 'choosing' && sel.valid));
   const block = mine && bankBlock(0, game.turnScore + sel.score);
-  const canBank = mine && game.phase === 'choosing' && sel.valid && !block;
+  const canBank = mine && !game.bloque && game.phase === 'choosing' && sel.valid && !block;
   // sur téléphone, la combinaison prend la place du conseil : elle rappelle aussi pourquoi on ne peut pas encore garder
   const blockShort = block === 'final' ? `il te faut plus de ${game.scores[1] - game.scores[0]}` : `ouverture à ${OPENING}`;
   el.selDetail.textContent = sel.count ? (sel.valid ? formatParts(sel.parts) + (block ? ` · ${blockShort}` : '') : 'Combinaison incomplète') : '';

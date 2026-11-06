@@ -22,9 +22,9 @@ export async function loadVoices() {
 export async function loadOppVoices() {
   const opp = RULES.opponent;
   if (talk.oppLoaded === opp || !audio.ctx) return;
-  if (talk.oppLoaded) for (const m in OPP_TALK[talk.oppLoaded]) for (const [id] of oppLines(talk.oppLoaded, m)) delete talk.buffers[id];
+  if (talk.oppLoaded && OPP_TALK[talk.oppLoaded]) for (const m in OPP_TALK[talk.oppLoaded]) for (const [id] of oppLines(talk.oppLoaded, m)) delete talk.buffers[id];
   talk.oppLoaded = opp;
-  await Promise.all(Object.keys(OPP_TALK[opp]).flatMap((m) => oppLines(opp, m)).map(async ([id]) => {
+  await Promise.all(Object.keys(OPP_TALK[opp] || {}).flatMap((m) => oppLines(opp, m)).map(async ([id]) => {
     const buf = await loadAudio(`audio/voix/${id}.mp3`);
     if (buf && talk.oppLoaded === opp) talk.buffers[id] = buf;
   }));
@@ -158,7 +158,7 @@ export const playerActed = () => { nag.since = performance.now(); };
 addEventListener('pointerdown', playerActed);
 addEventListener('keydown', playerActed);
 setInterval(() => {
-  if (game.current !== 0 || !['idle', 'choosing'].includes(game.phase) || document.hidden) return;
+  if (game.online || game.current !== 0 || !['idle', 'choosing'].includes(game.phase) || document.hidden) return; // un autre joueur ne parle pas par la voix du jeu
   if (!$('rules').classList.contains('hidden') || !$('settings-panel').classList.contains('hidden')) { playerActed(); return; }
   if (nag.count >= 2 || performance.now() - nag.since < (nag.count ? 40000 : 20000)) return;
   nag.count++; playerActed();

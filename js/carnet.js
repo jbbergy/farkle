@@ -7,7 +7,8 @@ import { wallet } from './bourse.js';
 import { game } from './partie.js';
 import { sfxFeat } from './sons.js';
 
-// starter : qui a ouvert la dernière partie (chacun son tour) ; vs : victoires et défaites contre chaque adversaire ;
+// starter : qui a ouvert la dernière partie (chacun son tour) ; vs : victoires et défaites contre chaque adversaire
+// (ami : contre d’autres joueurs, en ligne) ;
 // feats : hauts faits obtenus, avec leur date
 const CARNET_KEY = 'farkle.carnet';
 export const carnet = { starter: 1, games: 0, wins: 0, vs: {}, bestTurn: 0, bestPot: 0, purseMax: 0, hot: 0, farkles: 0, feats: {} };

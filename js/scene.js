@@ -217,6 +217,8 @@ export function adaptResolution(delta, interval) {
   perf.frames = perf.late = 0;
 }
 // Sur téléphone, la carte des ombres n’est recalculée que si quelque chose bouge ou si la mise en page a changé
+// (des dés reposés d’un coup, sans animation : les ombres doivent suivre)
+export function refreshShadows() { shadowsDirty = true; }
 export function updateShadowMap(moving) {
   renderer.shadowMap.needsUpdate = shadowsDirty || moving;
   shadowsDirty = false;

@@ -6,17 +6,18 @@ import { $, rand, sleep } from './outils.js';
 import { faceValue } from './des-speciaux.js';
 import { OPP, pickTavernHand } from './adversaires.js';
 import { CREDIT, MIN_STAKE, saveWallet, wallet } from './bourse.js';
-import { layout } from './scene.js';
+import { layout, refreshShadows } from './scene.js';
 import { bangTable, blowCandles, flareCandles } from './decor.js';
 import { armBug, hotEvent, rollEvent } from './evenements.js';
 import {
-  dice, equipDice, faceUpQuat, moveDie, placeBodyAtMesh, restOnMat, setInWorld, topFace, useSet
+  dice, equipDice, faceUpQuat, moveDie, placeBodyAtMesh, poseDie, restOnMat, setInWorld, topFace, useSet
 } from './des.js';
 import { cancelReplay, throwDice } from './lancer.js';
 import { clickableValues, countValues, enumerateSubsets, hasScore, scoreAll } from './regles.js';
 import { carnet, noteAces, noteParts, noteResult, saveCarnet, unlock } from './carnet.js';
 import { clearMatch, saveMatch, setPendingMatch } from './sauvegarde.js';
 import { aiTurn } from './ia.js';
+import { configurerFin, envoyerEtat, finManche, geste, tourDistant } from './en-ligne.js';
 import { sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
 import { buzzBang, buzzFarkle, buzzVictory } from './vibreur.js';
 import { commentRoll, loadOppVoices, nag, playerActed, react, talk } from './voix.js';
@@ -32,7 +33,9 @@ export const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, t
   // pour les hauts faits : Farkles du joueur et plus gros retard de la partie, dés brûlants du tour en cours
   // (trace.bug : l’insecte est déjà passé, il ne revient pas même si la partie est reprise ;
   // trace.tales : les anecdotes déjà racontées, qui ne reviennent pas dans la même partie)
-  trace: { farkles: 0, deficit: 0, tales: [] }, hotTurn: 0 };
+  trace: { farkles: 0, deficit: 0, tales: [] }, hotTurn: 0,
+  // online : partie à deux en ligne ; bloque : le joueur ne peut pas agir (connexion perdue, gestes en cours de rattrapage)
+  online: false, bloque: false };
 
 // ─── Règles de la maison (réglages, valables dès la partie suivante) ───
 // ouverture : il faut garder au moins 500 points en un tour pour inscrire son premier score ;
@@ -64,7 +67,7 @@ export function reservePos(side, slot) {
   return new THREE.Vector3(-3.75 + slot * 1.5, y, s * CONFIG.reserveZ);
 }
 export function canSelect(d) {
-  return game.current === 0 && game.phase === 'choosing' &&
+  return game.current === 0 && game.phase === 'choosing' && !game.bloque &&
     (d.state === 'pending' || (d.state === 'table' && game.clickable.has(faceValue(d))));
 }
 export function setAside(d) {
@@ -88,15 +91,27 @@ function returnToBoard(d) {
     if (done && d.state === 'table') { placeBodyAtMesh(d); setInWorld(d, true); d.body.sleep(); }
   });
 }
-export function toggleDie(d) {
+// (`fromNet` : geste reçu de l’autre joueur, ou le sien rejoué après un rechargement)
+export function toggleDie(d, fromNet = false) {
+  if (game.online && !fromNet) geste({ k: 'de', i: dice.indexOf(d) });
   if (d.state === 'pending') returnToBoard(d); else setAside(d);
   if (d.kind) { dieTip.flash = d; dieTip.until = performance.now() + 2200; }
   updateUI();
 }
 
-// Nouvelle partie, ou reprise de la partie interrompue (`resume`, voir saveMatch)
-export function startGame(resume = null) {
-  if (resume) {
+// Nouvelle partie, reprise de la partie interrompue (`resume`, voir saveMatch), ou partie à deux en ligne (`online`,
+// voir lancerManche dans en-ligne.js : la mise y est déjà payée, et la sauvegarde d’une partie solo reste de côté)
+export function startGame(resume = null, online = null) {
+  game.online = !!online;
+  game.bloque = false;
+  if (online) {
+    RULES.target = online.cible; RULES.opponent = 'ami';
+    game.pot = online.mise * 2; game.scores = [0, 0];
+    game.playerHand = online.mains[0]; game.tavernHand = online.mains[1];
+    game.starter = online.starter; game.turns = 0; game.finalFrom = null;
+    game.house = { ...online.maison }; game.opened = [!online.maison.ouverture, !online.maison.ouverture]; game.farkleRun = [0, 0];
+    game.trace = { farkles: 0, deficit: 0, tales: [] };
+  } else if (resume) {
     RULES.target = resume.target; RULES.opponent = resume.opponent;
     game.pot = resume.pot; game.scores = resume.scores.slice();
     game.playerHand = resume.playerHand; game.tavernHand = resume.tavernHand;
@@ -118,7 +133,7 @@ export function startGame(resume = null) {
     game.house = { ...house }; game.opened = [!house.ouverture, !house.ouverture]; game.farkleRun = [0, 0];
     game.trace = { farkles: 0, deficit: 0, tales: [] };
   }
-  setPendingMatch(null);
+  if (!online) setPendingMatch(null);
   game.token++;
   cancelReplay();
   shownScores[0] = game.scores[0]; shownScores[1] = game.scores[1];
@@ -126,20 +141,55 @@ export function startGame(resume = null) {
   $('target-label').textContent = RULES.target;
   document.querySelector('#row-1 .who').innerHTML = OPP().row;
   $('pot-label').textContent = game.pot ? `Pot : ${game.pot} groschens` : 'Pour l’honneur';
+  $('btn-quit').textContent = online ? 'Abandonner la partie' : 'Retour au menu';
+  $('quit-note').textContent = online ? `${CONFIG.ai} gagne alors la partie${game.pot ? ' et le pot' : ''}.` : 'La partie est gardée : tu la reprendras depuis le menu. Seul le tour en cours est perdu.';
   equipDice(0); equipDice(1);
   $('menu').classList.add('hidden'); $('gameover').classList.add('hidden'); $('hud').classList.remove('hidden');
   document.body.dataset.screen = 'game';
   armBug(); // l’insecte passera peut-être pendant la partie
-  beginTurn(resume ? resume.current : game.starter);
+  if (online?.etat) restoreTurn(online.etat);
+  else beginTurn(resume ? resume.current : game.starter);
   // l’adversaire salue (une nouvelle partie), une fois ses répliques chargées
   const tk = game.token;
   loadOppVoices().then(() => { if (!resume && tk === game.token) react('debut', 0.8, 400); });
+}
+// Partie à deux, page rechargée : le tour reprend là où l’instantané l’a laissé (voir etatPartie, dans en-ligne.js).
+// Les dés encore sur le plateau y sont simplement reposés : seule leur valeur compte.
+const BOARD_SPOTS = [[-3.4, -1.4], [0, -1.6], [3.4, -1.3], [-3.2, 1.5], [0.2, 1.3], [3.5, 1.6]];
+function restoreTurn(e) {
+  const p = e.current;
+  game.current = p; game.phase = e.phase; game.turnScore = e.tour; game.scores = e.scores.slice(); game.finalFrom = e.finalFrom;
+  game.opened = e.opened.slice(); game.farkleRun = e.farkleRun.slice(); game.turns = e.turns;
+  game.clickable = new Set(); game.aiStatus = ''; game.hotTurn = 0;
+  shownScores[0] = game.scores[0]; shownScores[1] = game.scores[1];
+  el.scores.forEach((s, i) => { s.textContent = game.scores[i]; });
+  useSet(p);
+  restOnMat(1 - p, false);
+  if (e.phase === 'idle') {
+    restOnMat(p, false);
+    slots[p].fill(null);
+    for (const d of dice) d.state = 'table';
+  } else {
+    slots[p].fill(null);
+    dice.forEach((d, i) => {
+      const [state, slot, value] = e.des[i];
+      d.state = state; d.side = p; d.slot = slot;
+      if (state === 'table') poseDie(d, new THREE.Vector3(BOARD_SPOTS[i][0], 0.5, BOARD_SPOTS[i][1]), value, true);
+      else { slots[p][slot] = d; poseDie(d, reservePos(p, slot), value, false); }
+    });
+    game.clickable = clickableValues(countValues(dice.filter((d) => d.state === 'table')));
+  }
+  refreshShadows();
+  unframe();
+  if (e.phase === 'choosing') frameDice();
+  updateUI();
+  if (p === 1) tourDistant();
 }
 function beginTurn(p) {
   game.current = p; game.turnScore = 0; game.phase = 'idle'; game.clickable = new Set(); game.aiStatus = '';
   game.turns++; game.hotTurn = 0;
   nag.count = 0; playerActed();
-  saveMatch();
+  if (!game.online) saveMatch();
   // les dés de l’autre retournent sur son tapis ; ceux du lanceur partiront de là où ils sont
   // (ils gardent leur case jusqu’au lancer, pour suivre leur tapis si l’écran tourne)
   useSet(p);
@@ -148,7 +198,8 @@ function beginTurn(p) {
   restOnMat(1 - p);
   unframe();
   updateUI();
-  if (p === 1) aiTurn();
+  if (game.online && p === 0) envoyerEtat();
+  if (p === 1) { if (game.online) tourDistant(); else aiTurn(); }
   else if (game.finalFrom !== null) { toast('Ton dernier tour', `Il te faut plus de ${game.scores[1] - game.scores[0]} points`, 'hot', 2200); sfxHot(); }
   else toast(game.turns === 1 ? 'À toi de commencer' : 'À toi de jouer', '', 'info', 1100);
 }
@@ -160,7 +211,8 @@ function knock(k, delay) {
   setTimeout(() => { if (tk !== game.token) return; bangTable(k); sfxThud(k); buzzBang(); }, delay);
 }
 
-export async function rollAction() {
+// `imposed` : les valeurs d’un lancer reçu par le réseau (voir throwDice)
+export async function rollAction(imposed = null) {
   const tk = game.token;
   if (game.phase === 'choosing') {
     const sel = selectionInfo();
@@ -192,7 +244,7 @@ export async function rollAction() {
   }
   updateUI();
   unframe();
-  const ok = await throwDice(toThrow, game.current);
+  const ok = await throwDice(toThrow, game.current, imposed);
   if (!ok || tk !== game.token) return null;
   frameDice();
   const counts = countValues(toThrow);
@@ -207,6 +259,7 @@ export async function rollAction() {
   game.clickable = clickableValues(counts);
   if (game.current === 0 && kb.active) focusFirst();
   updateUI();
+  if (game.online && game.current === 0) envoyerEtat();
   return 'ok';
 }
 
@@ -245,12 +298,13 @@ async function farkle() {
   endTurn();
 }
 
-export async function bankAction() {
+export async function bankAction(fromNet = false) {
   if (game.phase !== 'choosing') return;
   const sel = selectionInfo();
   if (!sel.valid) return;
   const tk = game.token, who = game.current;
   if (bankBlock(who, game.turnScore + sel.score)) return;
+  if (game.online && !fromNet) geste({ k: 'garder' });
   game.phase = 'banking';
   game.turnScore += sel.score;
   pendingDice().forEach((d) => { d.state = 'locked'; });
@@ -297,19 +351,20 @@ export async function concede() {
   if (tk === game.token) gameOver(0, true);
 }
 
-function gameOver(winner, conceded = false) {
+// (`note` : à deux en ligne, ce qui a mis fin à la partie quand ce ne sont pas les points : abandon, forfait)
+export function gameOver(winner, conceded = false, note = '') {
   game.phase = 'over';
   updateUI();
   const [me, him] = game.scores;
   let money = !game.pot ? 'Partie pour l’honneur : rien de gagné, rien de perdu.'
     : winner === 0 ? `Tu empoches le pot : ${game.pot} groschens.` : `Ta mise de ${game.pot / 2} groschens est perdue.`;
   if (winner === 0) wallet.purse += game.pot;
-  game.lastResult = (game.pot ? '' : 'honneur-') + (winner === 0 ? 'win' : 'loss');
+  game.lastResult = game.online ? null : (game.pot ? '' : 'honneur-') + (winner === 0 ? 'win' : 'loss'); // l’adversaire du menu n’a rien à en dire
   noteResult(winner);
-  clearMatch();
+  if (game.online) finManche(); else clearMatch();
   if (wallet.purse < MIN_STAKE) {
     wallet.purse += CREDIT;
-    game.lastResult = 'credit';
+    if (!game.online) game.lastResult = 'credit';
     money += ` Ta bourse est vide : le Tavernier, bon prince, te glisse ${CREDIT} groschens.`;
   }
   saveWallet();
@@ -317,7 +372,10 @@ function gameOver(winner, conceded = false) {
   $('go-text').textContent = winner === 0
     ? `Tu l’emportes, ${me} points contre ${him}. ${conceded ? OPP().gaveUp : OPP().beaten}`
     : `${CONFIG.ai} l’emporte, ${him} points contre ${me}. ${OPP().wins[game.pot ? 0 : 1]}`;
+  if (note) $('go-text').textContent = note;
   $('go-money').textContent = `${money} Ta bourse : ${wallet.purse} groschens.`;
+  if (game.online) configurerFin();
+  else { $('btn-again').hidden = false; $('btn-again').disabled = false; $('btn-again').textContent = 'Nouvelle partie'; }
   $('gameover').classList.remove('hidden');
   fitModal($('gameover').querySelector('.modal'));
   if (winner === 0) { sfxVictory(); buzzVictory(); flareCandles(1); knock(1, 350); } else sfxDefeat();

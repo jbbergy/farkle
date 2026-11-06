@@ -31,6 +31,8 @@ import { initShop } from './ui/echoppe.js';
 import { initCarnet } from './ui/page-carnet.js';
 import { initMenu, renderMenu } from './ui/menu.js';
 import { initSettings } from './ui/reglages.js';
+import { initOnlinePage } from './ui/page-en-ligne.js';
+import { couperConnexion, initEnLigne, table as onlineTable } from './en-ligne.js';
 
 const clock = new THREE.Clock();
 let elapsed = 0, lastFrame = 0;
@@ -93,6 +95,8 @@ initShop();
 initCarnet();
 initRules();
 initSettings();
+initEnLigne();
+initOnlinePage();
 addEventListener('resize', applyLayout);
 
 buildWorld();
@@ -115,7 +119,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 // Accès console pour le débogage
 window.FarkleDebug = {
   game, dice, allDice, diceSets, RULES, scoreAll, enumerateSubsets, hasScore, audio, kb, view, camera, renderer, talk, say, pickLine, react,
-  wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderMenu, carnet, unlock, house, OPPONENTS, TALK, OPP_TALK, crowdLines, chooseLine,
+  onlineTable, coupure: couperConnexion, wallet, DIE_KINDS, faceValue, equipDice, saveWallet, renderMenu, carnet, unlock, house, OPPONENTS, TALK, OPP_TALK, crowdLines, chooseLine,
   replay: () => replayJob, throwDice, hotFx, frameDice,
   // événements de la table : event('grace' | 'aube' | 'tremblement' | 'hot', n), bug()
   event: testEvent, bug: testBug,

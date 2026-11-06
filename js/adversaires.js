@@ -79,6 +79,15 @@ export const OPPONENTS = {
     beaten: 'Le Tavernier grommelle et remplit ta chope.', wins: ['Il fait déjà sonner tes pièces.', 'Il bombe le torse.'],
   },
 };
+// L’autre joueur d’une partie à deux en ligne : hors de la liste du menu, sans répliques ; son nom est mis par setFriend
+OPPONENTS.ami = {
+  name: '', Name: '', full: '', short: '', row: '', she: false, tag: '', risk: 1, slip: 0, maxStake: 100, dice: [], look: { body: '#6f8a9c', pip: '#14222c' },
+  hello: '', resume: '', win: '', loss: '', honorWin: '', honorLoss: '', rich: '', credit: '', stakes: {}, lengths: [], gaveUp: '', beaten: '', wins: ['', ''],
+};
+const escapeHtml = (t) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export function setFriend(name) {
+  Object.assign(OPPONENTS.ami, { name, Name: name, full: name, short: name, row: escapeHtml(name) });
+}
 export const OPP_ORDER = ['palefrenier', 'vieux', 'servante', 'tavernier'];
 export const OPP = () => OPPONENTS[RULES.opponent];
 export const il = () => (OPP().she ? 'Elle' : 'Il');

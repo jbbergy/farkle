@@ -1,0 +1,9 @@
+# Production sur jibhey.fr : le conteneur n'écoute qu'en local ; Caddy publie /ws sur farkle.jibhey.fr en HTTPS.
+services:
+  app:
+    build: .
+    image: farkle-serveur
+    container_name: farkle-serveur
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4322:3000"

@@ -7,6 +7,7 @@ import { rand, sleep } from './outils.js';
 import { DIE_KINDS } from './des-speciaux.js';
 import { MASK_ALL, MASK_ENTER_L, MASK_ENTER_R, world } from './physique.js';
 import { FACES, moveDie, placeBodyAtMesh, randomQuat, setInWorld, spawnPos, storeRest, topFace } from './des.js';
+import { envoyerLancer } from './en-ligne.js';
 import { game } from './partie.js';
 import { sfxHit, sfxRattle } from './sons.js';
 import { buzzHit } from './vibreur.js';
@@ -14,10 +15,12 @@ import { buzzHit } from './vibreur.js';
 // Un lancer est calculé d’un coup (physique à pas fixe, jusqu’à ce que les dés reposent), puis rejoué à l’écran.
 // Chaque dé spécial tire d’abord sa face selon ses chances ; à la lecture, son image est tournée d’un des
 // 24 retournements du cube pour que cette face arrive en haut. Le cube étant symétrique, la trajectoire est la même.
+// À deux en ligne, seules les valeurs voyagent : `imposed` (valeurs reçues de l’autre joueur, une par dé de `list`) impose
+// ces faces à tous les dés ; chacun voit donc sa propre chute des dés, mais les mêmes chiffres.
 export let replayJob = null;
 // on abandonne le lancer en cours (nouvelle partie, retour au menu)
 export function cancelReplay() { replayJob = null; }
-export async function throwDice(list, side) {
+export async function throwDice(list, side, imposed = null) {
   const tk = game.token;
   sfxRattle(side);
   for (const d of list) d.slot = -1;
@@ -43,15 +46,19 @@ export async function throwDice(list, side) {
   }
   const rec = await simulateThrow(list);
   if (tk !== game.token) return false;
+  const values = [];
   const offsets = list.map((d, i) => {
     const kind = d.kind && DIE_KINDS[d.kind];
-    if (!kind) return null; // dé ordinaire : la physique décide seule
     const f = rec.frames[rec.frames.length - 1], k = i * 7;
     const top = topFace(new THREE.Quaternion(f[k + 3], f[k + 4], f[k + 5], f[k + 6])).index;
-    const v = drawFace(kind.w), want = FACES.findIndex((F) => F.v === v);
+    const v = imposed ? imposed[i] : kind ? drawFace(kind.w) : FACES[top].v; // dé ordinaire : la physique décide seule
+    values.push(v);
+    if (!imposed && !kind) return null;
+    const want = FACES.findIndex((F) => F.v === v);
     const spin = new THREE.Quaternion().setFromAxisAngle(FACES[top].n, ((Math.random() * 4) | 0) * Math.PI / 2);
     return spin.multiply(new THREE.Quaternion().setFromUnitVectors(FACES[want].n, FACES[top].n));
   });
+  if (game.online && !imposed) envoyerLancer(values);
   return new Promise((resolve) => { replayJob = { list, rec, offsets, t: 0, sound: 0, resolve }; });
 }
 // Tirage d’une face selon ses chances sur 100 (du 1 au 6)

@@ -12,7 +12,7 @@ function carnetHTML() {
   const vs = OPP_ORDER.filter((id) => carnet.vs[id]).map((id) => {
     const r = carnet.vs[id], o = OPPONENTS[id];
     return `<tr><td>Contre ${o.full}</td><td>${plural(r.w, 'victoire')} · ${plural(r.l, 'défaite')}</td></tr>`;
-  }).join('');
+  }).join('') + (carnet.vs.ami ? `<tr><td>Contre d’autres joueurs</td><td>${plural(carnet.vs.ami.w, 'victoire')} · ${plural(carnet.vs.ami.l, 'défaite')}</td></tr>` : '');
   const got = FEATS.filter((f) => carnet.feats[f.id]).length;
   const date = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   const feats = FEATS.map((f) => {

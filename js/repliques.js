@@ -183,7 +183,7 @@ export const OPP_TALK = {
   },
 };
 // [fichier, qui parle, texte] pour chaque réplique d’un adversaire
-export const oppLines = (opp, moment) => OPP_TALK[opp][moment].map((text, i) => [`${opp}_${moment}_${i + 1}`, opp, text]);
+export const oppLines = (opp, moment) => (OPP_TALK[opp]?.[moment] || []).map((text, i) => [`${opp}_${moment}_${i + 1}`, opp, text]);
 // Saluts qui laissent la main au joueur (« les dés sont à toi », « lance ! ») : seulement quand c’est lui qui commence
 export const PLAYER_STARTS = new Set(['tavernier_debut_2', 'vieux_debut_1', 'servante_debut_2']);
 // Moment où l’adversaire peut répondre lui-même, pour chaque réaction des clients

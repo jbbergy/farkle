@@ -172,7 +172,7 @@ const bugPlan = { wait: 0 };
 // Au début (ou à la reprise) d’une partie : l’insecte viendra peut-être, après 25 s à 2 min 30 de jeu
 export function armBug() {
   if (bug) removeBug();
-  bugPlan.wait = RULES.opponent === 'tavernier' || game.trace.bug ? 0 : rand(25, 150);
+  bugPlan.wait = RULES.opponent === 'tavernier' || game.online || game.trace.bug ? 0 : rand(25, 150); // à deux en ligne, chacun verrait le sien
 }
 const BUG_SCALE = 0.95;
 function makeBug(type) {

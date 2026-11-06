@@ -17,6 +17,12 @@ npx serve --no-clipboard -l 8765
 
 Puis ouvrir http://localhost:8765. Il faut Node.js ; la première fois, `npx` propose d’installer `serve`.
 
+Pour le jeu à deux, il faut aussi le serveur (`ws://localhost:8790/ws`, voir « À deux en ligne ») :
+
+```bash
+cd serveur && npm install && node serveur.js
+```
+
 ## Commandes
 
 - Souris ou toucher : cliquer un dé pour le mettre de côté ou le reposer.
@@ -38,6 +44,7 @@ Des modules JavaScript natifs (`import` / `export`), chargés par le navigateur 
   (plateau, bougies, chopes, pièces), `physique.js`, `des.js`, `lancer.js`, `cadrage.js` (zoom et vue rapprochée).
 - Le jeu : `regles.js` (combinaisons et score), `partie.js` (tours, Farkle, fin de partie), `ia.js`,
   `bourse.js`, `carnet.js` (records et hauts faits), `sauvegarde.js` (partie en cours).
+- À deux en ligne : `en-ligne.js`, `ui/page-en-ligne.js`, et le serveur dans `serveur/`.
 - Le son : `sons.js` (musique, ambiance, bruitages), `voix.js` ; les vibrations du téléphone : `vibreur.js`.
 - Les commandes : `entrees.js` (souris, toucher, clavier).
 - Les fenêtres, dans `js/ui/` : `hud.js` (panneaux de la partie), `menu.js`, `echoppe.js`, `page-carnet.js`,
@@ -99,6 +106,23 @@ Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouve
 - Sur téléphone, les dés vibrent à leurs chocs, plus longuement au Farkle, deux fois à la victoire (`js/vibreur.js`).
   Le réglage « Vibrations » (`farkle.vibrations`) n’apparaît que si le navigateur sait faire vibrer (pas sur iPhone).
 
+## À deux en ligne
+
+Le bouton « Jouer à deux » du menu ouvre `js/ui/page-en-ligne.js`. Le maître crée une table (nom, dés spéciaux, mise, durée, ses règles de la maison) et reçoit
+un code de 5 lettres, à envoyer tel quel ou par un lien `?partie=CODE`. L’autre entre le code et son nom, voit la table, puis mise et s’assied ; la partie
+commence aussitôt. Si les dés spéciaux sont permis, chacun joue la main qu’il avait en créant ou en rejoignant. La bourse est celle du solo.
+
+Le serveur (`serveur/serveur.js`, Node et `ws`) ne connaît pas les règles : il tient les tables en mémoire et relaie les gestes dans l’ordre.
+Chaque navigateur fait tourner `partie.js`, chaque joueur étant « 0 » chez lui (`js/en-ligne.js`). Seuls voyagent un lancer (ses valeurs : l’autre calcule
+sa propre chute et lui impose ces faces, voir `throwDice`), un dé pris ou reposé, et les points gardés.
+
+Reprise : après une coupure, le serveur renvoie les gestes manqués. Après un rechargement, il renvoie le dernier instantané (`envoyerEtat`, à chaque début de tour
+et chaque lancer posé) et les gestes qui le suivent ; la clé `farkle.table` garde la place et la mise payée. Si le serveur ne connaît plus la table, la mise est rendue.
+Un joueur absent depuis 3 minutes peut perdre par forfait ; abandonner donne le pot à l’autre. La sauvegarde d’une partie solo reste de côté.
+
+Le serveur tourne sur jibhey.fr dans le conteneur `farkle-serveur` (`/srv/apps/farkle`, port local 4322), publié par Caddy sur `/ws`.
+Ses tests : `cd serveur && npm test`.
+
 ## Carnet et hauts faits
 
 La bourse du menu ouvre le carnet : parties contre chaque adversaire, records et hauts faits (`FEATS` dans `js/carnet.js`),
@@ -120,5 +144,5 @@ doit être ajouté à la liste `CODE` de `sw.js`, en changeant `VERSION`.
 ```
 
 Le script vérifie que chaque fichier de `css/` et `js/` est dans la liste `CODE` de `sw.js`, envoie les fichiers
-sur le serveur, régénère la configuration Caddy de `farkle.jibhey.fr` (avec l’empreinte CSP de l’importmap,
+sur le serveur, reconstruit le conteneur du jeu à deux, régénère la configuration Caddy de `farkle.jibhey.fr` (avec l’empreinte CSP de l’importmap,
 seul script écrit dans la page) et recharge Caddy.

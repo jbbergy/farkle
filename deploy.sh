@@ -8,6 +8,7 @@ HOST=jibhey.fr
 DOMAIN=farkle.jibhey.fr
 ROOT=/srv/sites/$DOMAIN
 SITE=/etc/caddy/sites/farkle.caddy
+APP=/srv/apps/farkle
 
 # 0. Hors connexion, le service worker ne sert que les fichiers de sa liste CODE : chaque fichier de css/ et js/ doit y être
 missing=$(for f in css/*.css js/*.js js/ui/*.js; do grep -q "'$f'" sw.js || echo "$f"; done)
@@ -17,6 +18,11 @@ if [ -n "$missing" ]; then echo "À ajouter à la liste CODE de sw.js (et change
 #    manifeste, icônes et service worker (sw.js)
 ssh "$HOST" "mkdir -p $ROOT"
 rsync -az --delete --exclude 'originaux/' --exclude '.DS_Store' index.html css js manifest.webmanifest sw.js icons audio "$HOST:$ROOT/"
+
+# 1 bis. Serveur du jeu à deux (conteneur Docker sur 127.0.0.1:4322, publié par Caddy sur /ws)
+ssh "$HOST" "mkdir -p $APP"
+rsync -az --delete --exclude node_modules --exclude '.DS_Store' serveur/ "$HOST:$APP/"
+ssh "$HOST" "cd $APP && docker compose up -d --build --remove-orphans && docker image prune -f > /dev/null"
 
 # 2. Les modules de js/ sont autorisés par 'self' ; le seul script écrit dans index.html, l’importmap, l’est par son
 #    empreinte (sha256), recalculée à chaque publication puisqu’elle change dès que la carte change.
@@ -29,13 +35,19 @@ EOF
 )
 
 # 3. Site Caddy (HTTPS automatique). En cas de configuration invalide, on retire le site et on s’arrête.
-#    connect-src : le service worker va chercher lui-même les bibliothèques et les polices pour les garder hors ligne.
+#    connect-src : le service worker va chercher lui-même les bibliothèques et les polices pour les garder hors ligne ;
+#    wss:// : la connexion du jeu à deux, que Caddy passe au conteneur (handle /ws*).
 ssh "$HOST" "sudo tee $SITE > /dev/null" <<EOF
 $DOMAIN {
 	import security
-	header Content-Security-Policy "default-src 'self'; script-src 'self' ${HASHES}https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self' ${HASHES}https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' wss://$DOMAIN https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
 
 	encode zstd gzip
+
+	handle /ws* {
+		reverse_proxy 127.0.0.1:4322
+	}
+
 	root * $ROOT
 
 	@audio path /audio/*
@@ -47,5 +59,8 @@ $DOMAIN {
 }
 EOF
 ssh "$HOST" "sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1 || { sudo rm -f $SITE; echo 'Configuration Caddy invalide : site retiré.' >&2; exit 1; }; sudo systemctl reload caddy"
+
+# 4. Le serveur du jeu à deux répond-il ?
+for i in $(seq 1 30); do curl -fsS "https://$DOMAIN/ws/sante" > /dev/null 2>&1 && break; sleep 2; [ "$i" = 30 ] && { echo "Le serveur du jeu à deux ne répond pas." >&2; ssh "$HOST" "docker logs --tail 50 farkle-serveur" >&2; exit 1; }; done
 
 echo "En ligne : https://$DOMAIN"

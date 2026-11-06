@@ -1,0 +1,18 @@
+{
+  "name": "farkle-serveur",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serveur du jeu à deux du Farkle : tables, codes et relais des gestes",
+  "type": "module",
+  "main": "serveur.js",
+  "scripts": {
+    "start": "node serveur.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -7,6 +7,7 @@ import { OPP, OPP_ORDER, OPPONENTS } from '../adversaires.js';
 import { HAND_SIZE, STAKES, wallet } from '../bourse.js';
 import { applyOppLook, restOnMat } from '../des.js';
 import { cancelReplay } from '../lancer.js';
+import { abandonner, demanderRevanche, pretePourMenu, quitterTable, table } from '../en-ligne.js';
 import { pendingMatch, readMatch, setPendingMatch } from '../sauvegarde.js';
 import { game, startGame } from '../partie.js';
 import { initAudio, sfxCoins, sfxPlace } from '../sons.js';
@@ -17,7 +18,7 @@ import { dieIcon, kindIcon } from './icones.js';
 import { toggleSettings } from './reglages.js';
 
 // L’adversaire choisi commente la mise et la durée ; la bourse s’anime quand elle a changé depuis la dernière fois.
-const LENGTHS = [
+export const LENGTHS = [
   { target: 2000, name: 'Une chope' },
   { target: 4000, name: 'Une soirée' },
   { target: 8000, name: 'Jusqu’à l’aube' },
@@ -41,7 +42,7 @@ function tavernSay(text) {
   fitModal($('menu').querySelector('.modal'));
 }
 // Une pile de pièces par palier de mise ; sans mise, une place vide sur la table
-const coinStack = (n) => `<svg class="coins" viewBox="0 0 30 26" aria-hidden="true" data-opt="2">${n ? Array.from({ length: n }, (_, i) =>
+export const coinStack = (n) => `<svg class="coins" viewBox="0 0 30 26" aria-hidden="true" data-opt="2">${n ? Array.from({ length: n }, (_, i) =>
   `<ellipse cx="15" cy="${22.6 - i * 4.4}" rx="11" ry="3.4" class="c-side"/><ellipse cx="15" cy="${21 - i * 4.4}" rx="11" ry="3.4" class="c-top"/>`).join('')
   : '<ellipse cx="15" cy="21" rx="11" ry="3.4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2.2 1.8"/>'}</svg>`;
 // Bourse, mises, pot, dés en main et bouton de départ ; une mise plus forte que la bourse est grisée
@@ -71,7 +72,7 @@ export function renderMenu() {
   $('pot-line').innerHTML = honor ? 'Pas de mise : on joue pour l’honneur, avec des dés ordinaires.'
     : `${CONFIG.ai} suit : <b>${RULES.stake * 2}</b> groschens sur la table.`;
   // partie en cours : le menu reste replié sur elle tant qu’on n’a pas demandé une nouvelle partie
-  const fold = pendingMatch ? (menuFresh ? 'fresh' : 'folded') : '';
+  const fold = pendingMatch || table.aReprendre ? (menuFresh ? 'fresh' : 'folded') : '';
   $('menu').dataset.fold = fold;
   $('btn-menu-back').hidden = fold !== 'fresh'; $('btn-menu-rules').hidden = fold === 'fresh';
   // libellé court sur un écran étroit, pour tenir sur une ligne à côté du « ? »
@@ -85,7 +86,13 @@ export function renderMenu() {
   $('btn-shop').setAttribute('aria-label', `${desc}. Ouvrir l’échoppe aux dés.`);
   // partie interrompue : on propose de la reprendre ; une nouvelle mise l’abandonne (avec sa mise)
   const m = pendingMatch;
-  $('resume-card').hidden = !m;
+  $('resume-card').hidden = !m || !!table.aReprendre;
+  $('online-card').hidden = !table.aReprendre;
+  if (table.aReprendre) {
+    const other = table.noms[1 - table.place];
+    $('online-resume-info').textContent = `${table.aReprendre.table.mise ? `Pot de ${table.aReprendre.table.mise * 2} groschens. ` : ''}${other} t’attend peut-être.`;
+    $('btn-online-resume').textContent = `Reprendre contre ${other}`;
+  }
   $('btn-start').classList.toggle('btn-wax', fold !== 'folded'); $('btn-start').classList.toggle('btn-wood', fold === 'folded');
   if (m) {
     $('resume-score').innerHTML = `Toi <b>${m.scores[0]}</b> · ${OPPONENTS[m.opponent].short} <b>${m.scores[1]}</b>`;
@@ -131,6 +138,7 @@ function chooseOpponent(id) {
 let menuFresh = false;
 export function backToMenu() {
   game.token++; game.phase = 'menu'; cancelReplay(); menuFresh = false;
+  if (game.online) { quitterTable(); pretePourMenu(); }
   unframe();
   $('gameover').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden');
   document.body.dataset.screen = 'menu';
@@ -165,11 +173,24 @@ export function initMenu() {
   });
   $('btn-menu-back').addEventListener('click', () => { menuFresh = false; sfxPlace('wood'); renderMenu(); tavernSay(greeting()); });
   $('btn-resume').addEventListener('click', () => { if (pendingMatch) { initAudio(); startGame(pendingMatch); } });
-  $('btn-again').addEventListener('click', () => { initAudio(); startGame(); });
+  $('btn-again').addEventListener('click', () => { initAudio(); if (game.online) demanderRevanche(); else startGame(); });
   $('btn-to-menu').addEventListener('click', backToMenu);
   // Quitter la partie en cours : elle reste gardée telle qu’au début du tour, à reprendre depuis le menu ;
   // les dés en l’air retournent sur le tapis de celui qui jouait
   $('btn-quit').addEventListener('click', () => {
+    // à deux en ligne : c’est un abandon, à confirmer d’un second clic
+    if (game.online) {
+      const b = $('btn-quit');
+      if (b.dataset.armed !== '1') {
+        b.dataset.armed = '1'; b.textContent = 'Sûr ? Abandonner';
+        setTimeout(() => { b.dataset.armed = ''; if (game.online) b.textContent = 'Abandonner la partie'; }, 4000);
+        return;
+      }
+      b.dataset.armed = '';
+      toggleSettings(false);
+      abandonner();
+      return;
+    }
     toggleSettings(false);
     if (game.phase === 'menu' || game.phase === 'over') return;
     const side = game.current;

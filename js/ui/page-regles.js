@@ -89,6 +89,13 @@ function rulesHTML() {
       <dt>Le Tavernier</dt><dd>le maître des lieux, le plus coriace ; il suit jusqu’à 100 groschens.</dd>
     </dl>
 
+    <h3>Jouer à deux</h3>
+    <p>Le bouton « Jouer à deux » du menu t’installe à une table contre quelqu’un d’autre, chacun sur son écran, avec une connexion à Internet.</p>
+    <p>Celui qui <b>crée</b> la partie donne son nom, choisit la mise et la durée, et décide si les <b>dés spéciaux</b> sont permis ; il reçoit un <b>code</b> à envoyer à l’autre.
+      Celui qui <b>rejoint</b> entre ce code et son nom, puis voit la table avant de miser. Ses règles de la maison sont celles de la partie.</p>
+    <p>Si les dés spéciaux sont permis, chacun joue avec les dés qu’il a <b>en main</b> au moment de créer ou de rejoindre la partie. Ta mise sort de ta bourse et tes gains y reviennent, comme contre les adversaires de la taverne.</p>
+    <p>Si tu perds la connexion, tu reviens à ta place dès qu’elle revient, même après avoir fermé la page : le menu te propose de reprendre. Si l’autre reste absent trois minutes, tu peux gagner <b>par forfait</b>. Abandonner donne la partie et le pot à l’autre.</p>
+
     <h3>Les règles de la maison</h3>
     <p>Deux règles connues des tavernes, à choisir dans les réglages (la roue dentée) ; elles comptent dès la partie suivante, pour les deux joueurs.</p>
     <dl class="controls opponents">
