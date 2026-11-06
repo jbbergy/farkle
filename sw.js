@@ -2,10 +2,11 @@
 // - La page, sa feuille de style et ses modules (css/, js/) : le réseau d’abord, pour recevoir une nouvelle version
 //   tout entière (un module ancien avec une page nouvelle casserait le jeu), la copie gardée si le réseau manque.
 // - Three.js, cannon-es (versions figées sur cdn.jsdelivr.net) et les fichiers des polices : gardés une fois pour toutes.
-// - Les sons (musique comprise) et la feuille des polices : servis depuis la copie gardée, rafraîchie en arrière-plan.
+// - Les sons (musique comprise) et la feuille des polices : servis depuis la copie gardée, rafraîchie en arrière-plan
+//   (en demandant au serveur s’ils ont changé : le cache du navigateur garde les sons un jour et rendrait une voix remplacée).
 // Changer VERSION quand les listes ci-dessous changent : l’ancienne copie est alors effacée.
 // Un fichier ajouté dans css/ ou js/ doit être ajouté à CODE (deploy.sh le vérifie), sinon le jeu ne se lance pas hors connexion.
-const VERSION = 'farkle-8';
+const VERSION = 'farkle-9';
 const SHELL = ['./', 'manifest.webmanifest', 'icons/icone.svg', 'icons/icone-192.png', 'icons/icone-512.png', 'icons/icone-apple.png'];
 const CODE = [
   'css/style.css',
@@ -59,6 +60,6 @@ async function cacheFirst(req) {
 }
 async function staleWhileRevalidate(req) {
   const cached = await caches.match(req);
-  const fresh = fetch(req).then((res) => keep(req, res)).catch(() => null);
+  const fresh = fetch(req, { cache: 'no-cache' }).then((res) => keep(req, res)).catch(() => null);
   return cached || (await fresh) || Response.error();
 }
