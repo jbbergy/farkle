@@ -18,13 +18,14 @@ export async function loadVoices() {
     if (buf) talk.buffers[id] = buf;
   }));
 }
-// Les répliques de l’adversaire du moment, chargées au début de la partie ; celles du précédent sont oubliées
+// Les répliques de l’adversaire du moment, chargées au début de la partie ; celles du précédent sont oubliées.
+// Une réplique qui n’a pas pu être chargée est retentée à la partie suivante ou à la reprise.
 export async function loadOppVoices() {
   const opp = RULES.opponent;
-  if (talk.oppLoaded === opp || !audio.ctx) return;
-  if (talk.oppLoaded && OPP_TALK[talk.oppLoaded]) for (const m in OPP_TALK[talk.oppLoaded]) for (const [id] of oppLines(talk.oppLoaded, m)) delete talk.buffers[id];
+  if (!audio.ctx) return;
+  if (talk.oppLoaded !== opp && talk.oppLoaded && OPP_TALK[talk.oppLoaded]) for (const m in OPP_TALK[talk.oppLoaded]) for (const [id] of oppLines(talk.oppLoaded, m)) delete talk.buffers[id];
   talk.oppLoaded = opp;
-  await Promise.all(Object.keys(OPP_TALK[opp] || {}).flatMap((m) => oppLines(opp, m)).map(async ([id]) => {
+  await Promise.all(Object.keys(OPP_TALK[opp] || {}).flatMap((m) => oppLines(opp, m)).filter(([id]) => !talk.buffers[id]).map(async ([id]) => {
     const buf = await loadAudio(`audio/voix/${id}.mp3`);
     if (buf && talk.oppLoaded === opp) talk.buffers[id] = buf;
   }));
@@ -49,8 +50,8 @@ export function pickLine(cat) { return pickFrom(`${cat}:${RULES.opponent}`, crow
 export function chooseLine(cat, moment = OWN_MOMENT[cat]) {
   const opp = RULES.opponent;
   let lines = moment ? oppLines(opp, moment) : [], key = `${opp}:${moment}`;
-  // l’adversaire qui ouvre la partie ne te tend pas les dés (tirage à part, pour ne pas mélanger les deux cas)
-  if (moment === 'debut' && game.starter === 1) { lines = lines.filter(([id]) => !PLAYER_STARTS.has(id)); key += ':lui'; }
+  // l’adversaire qui a la main ne te tend pas les dés (tirage à part, pour ne pas mélanger les deux cas)
+  if (moment === 'debut' && game.current === 1) { lines = lines.filter(([id]) => !PLAYER_STARTS.has(id)); key += ':lui'; }
   const own = pickFrom(key, lines);
   const crowd = TALK[cat] ? pickLine(cat) : null;
   if (own && (!crowd || Math.random() < 0.55)) return own;
