@@ -506,8 +506,8 @@ button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset:
   .menu-modal .modal-actions { flex-wrap: nowrap; gap: 8px; }
   .modal-actions .btn-start { flex: 1 1 auto; min-width: 0; font-size: 1.15rem; text-wrap: balance; }
   .modal-actions :is(#btn-menu-rules, #btn-menu-back) { flex: none; min-width: 0; width: 3.2rem; padding-inline: 0; font-size: 1.5rem; }
-  /* « Jouer à deux » devient « À deux », sur la même ligne : la mise garde le plus de place */
-  .modal-actions #btn-menu-online { flex: none; min-width: 0; padding-inline: 0.4em; font-size: 1rem; white-space: nowrap; }
+  /* « Jouer à deux » tient sur deux lignes, sur la même rangée : la mise garde le plus de place */
+  .modal-actions #btn-menu-online { flex: none; width: 4.7rem; min-width: 0; padding: 0.3em 0.25em; font-size: 1rem; line-height: 1.1; }
   .menu-modal .long { display: none; }
   .menu-modal .short { display: inline; }
   .stakes { gap: 5px; }
