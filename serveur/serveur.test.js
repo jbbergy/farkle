@@ -207,6 +207,31 @@ test('abandon : la partie est finie, le geste suivant n’est plus relayé', asy
   await a.close(); await b.close();
 });
 
+test('renoncer à son dernier tour : la partie est finie, la revanche reste possible', async () => {
+  const { a, b } = await fullTable();
+  a.send({ t: 'action', cid: 'r', a: { k: 'renonce' } });
+  assert.equal((await b.next('action')).a.k, 'renonce');
+  a.send({ t: 'revanche' });
+  await b.next('revanche');
+  b.send({ t: 'revanche' });
+  assert.equal((await a.next('debut')).manche, 2);
+  await a.close(); await b.close();
+});
+
+test('réactions : relayées à l’autre seul, hors du journal, espacées et bien formées', async () => {
+  const { a, b, code } = await fullTable();
+  a.send({ t: 'reaction', r: 'bravo' });
+  assert.equal((await b.next('reaction')).r, 'bravo');
+  assert.ok(await a.silent('reaction'));
+  a.send({ t: 'reaction', r: 'veine' }); // trop tôt après la première
+  assert.ok(await b.silent('reaction'));
+  b.send({ t: 'reaction', r: '<b>non</b>' });
+  b.send({ t: 'reaction', r: 42 });
+  assert.ok(await a.silent('reaction'));
+  assert.equal(server.tables.get(code).log.length, 0);
+  await a.close(); await b.close();
+});
+
 test('quitter une table en attente la supprime', async () => {
   const a = await connect(), v = await connect();
   a.send({ t: 'creer', nom: 'Anna', options: OPTIONS });

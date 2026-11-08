@@ -6,14 +6,14 @@
 //   (en demandant au serveur s’ils ont changé : le cache du navigateur garde les sons un jour et rendrait une voix remplacée).
 // Changer VERSION quand les listes ci-dessous changent : l’ancienne copie est alors effacée.
 // Un fichier ajouté dans css/ ou js/ doit être ajouté à CODE (deploy.sh le vérifie), sinon le jeu ne se lance pas hors connexion.
-const VERSION = 'farkle-9';
+const VERSION = 'farkle-10';
 const SHELL = ['./', 'manifest.webmanifest', 'icons/icone.svg', 'icons/icone-192.png', 'icons/icone-512.png', 'icons/icone-apple.png'];
 const CODE = [
   'css/style.css',
   'js/main.js', 'js/config.js', 'js/outils.js', 'js/des-speciaux.js', 'js/adversaires.js', 'js/bourse.js', 'js/repliques.js',
   'js/textures.js', 'js/scene.js', 'js/decor.js', 'js/physique.js', 'js/des.js', 'js/lancer.js', 'js/regles.js',
   'js/carnet.js', 'js/sauvegarde.js', 'js/partie.js', 'js/ia.js', 'js/sons.js', 'js/vibreur.js', 'js/voix.js', 'js/cadrage.js', 'js/entrees.js', 'js/evenements.js', 'js/en-ligne.js',
-  'js/ui/parchemin.js', 'js/ui/icones.js', 'js/ui/hud.js', 'js/ui/page-regles.js', 'js/ui/echoppe.js', 'js/ui/page-carnet.js', 'js/ui/page-en-ligne.js',
+  'js/ui/parchemin.js', 'js/ui/icones.js', 'js/ui/hud.js', 'js/ui/page-regles.js', 'js/ui/echoppe.js', 'js/ui/page-carnet.js', 'js/ui/page-en-ligne.js', 'js/ui/reactions.js',
   'js/ui/menu.js', 'js/ui/reglages.js',
 ];
 const LIBS = [

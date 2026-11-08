@@ -17,6 +17,7 @@ const DEFAULTS = {
   forfeitAfter: 3 * MIN,
   createLimit: 20, codeLimit: 30, limitWindow: 10 * MIN, // par adresse : créations, codes essayés qui n’existent pas
   messageLimit: 100, messageWindow: 10_000,              // par connexion
+  reactionGap: 1000,                                     // entre deux réactions d’un même joueur
   sweepEvery: MIN, heartbeat: 25_000,
   origins: /^https:\/\/farkle\.jibhey\.fr$|^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
 };
@@ -152,8 +153,19 @@ export function createFarkleServer(options = {}) {
       touch(t);
       // renvoi après une coupure : le geste est déjà au journal, le joueur reçoit son écho avec le reste
       if (m.cid && t.cids.has(m.cid)) return;
-      if (m.a.k === 'abandon') t.over = true;
+      if (m.a.k === 'abandon' || m.a.k === 'renonce') t.over = true;
       relay(t, s.place, m.cid, m.a);
+    },
+    // Une réaction part chez l’autre joueur sans passer par le journal : celui qui est absent ne la verra jamais.
+    // (la liste des réactions est dans le jeu, qui ignore celles qu’il ne connaît pas)
+    reaction(ws, m) {
+      const s = ws.seat;
+      if (!s || !s.table.round || s.table.over || typeof m.r !== 'string' || !/^[a-z]{1,12}$/.test(m.r)) return;
+      const t = s.table, p = t.players[s.place], now = Date.now();
+      if (now - (p.reacted || 0) < cfg.reactionGap) return;
+      p.reacted = now;
+      touch(t);
+      send(t.players[1 - s.place]?.ws, { t: 'reaction', r: m.r });
     },
     // Instantané à un point stable : il vaut pour tous les gestes reçus jusque-là
     etat(ws, m) {

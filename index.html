@@ -42,7 +42,14 @@
       <button id="btn-roll" class="btn btn-wax" disabled><span class="lbl">Lancer</span><kbd>R</kbd></button>
       <button id="btn-bank" class="btn btn-wood" disabled><span class="lbl">Garder</span><kbd>G</kbd></button>
     </div>
+    <button id="btn-giveup" class="btn btn-ghost" hidden>Abandonner</button>
     <p class="hint" id="hint"></p>
+    <div id="react-dock">
+      <button id="btn-react" class="seal-btn" title="Réagir" aria-label="Réagir" aria-expanded="false" aria-controls="react-panel" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-9l-5 4.5V18H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><circle cx="8.5" cy="8.5" r="1.5" fill="#7d160f"/><circle cx="15.5" cy="8.5" r="1.5" fill="#7d160f"/><path d="M7.5 12.2Q12 16.2 16.5 12.2" fill="none" stroke="#7d160f" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div id="react-panel" class="parchment hidden" role="group" aria-label="Envoyer une réaction"></div>
+    </div>
   </section>
 </div>
 
@@ -78,6 +85,7 @@
   </div>
 </div>
 
+<div id="react-stage" role="status" aria-live="polite"></div>
 <div id="die-tip" class="parchment" role="status"></div>
 <div id="toast" aria-live="polite"><div class="t-main"></div><div class="t-sub"></div></div>
 <div id="feat-toast" class="parchment" role="status" aria-live="polite"></div>

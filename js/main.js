@@ -32,6 +32,7 @@ import { initCarnet } from './ui/page-carnet.js';
 import { initMenu, renderMenu } from './ui/menu.js';
 import { initSettings } from './ui/reglages.js';
 import { initOnlinePage } from './ui/page-en-ligne.js';
+import { initReactions } from './ui/reactions.js';
 import { couperConnexion, initEnLigne, table as onlineTable } from './en-ligne.js';
 
 const clock = new THREE.Clock();
@@ -97,6 +98,7 @@ initRules();
 initSettings();
 initEnLigne();
 initOnlinePage();
+initReactions();
 addEventListener('resize', applyLayout);
 
 buildWorld();

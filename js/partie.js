@@ -351,7 +351,24 @@ export async function concede() {
   if (tk === game.token) gameOver(0, true);
 }
 
-// (`note` : à deux en ligne, ce qui a mis fin à la partie quand ce ne sont pas les points : abandon, forfait)
+// Dernier tour du joueur : il peut renoncer, tant que les dés ne roulent pas ; celui qui a atteint l’objectif l’emporte
+export const canGiveUp = () => game.finalFrom === 1 && game.current === 0 && !game.bloque && (game.phase === 'idle' || game.phase === 'choosing');
+export function giveUp() {
+  if (!canGiveUp()) return;
+  if (game.online) geste({ k: 'renonce' });
+  finishGiveUp(0);
+}
+// (`side` : celui qui renonce, l’autre joueur quand le geste vient du réseau)
+export function finishGiveUp(side) {
+  const [me, him] = game.scores;
+  game.token++;
+  cancelReplay();
+  gameOver(1 - side, false, side === 0
+    ? `Tu renonces à ton dernier tour : ${CONFIG.aiLower} l’emporte, ${him} points contre ${me}.`
+    : `${CONFIG.ai} renonce à son dernier tour : tu l’emportes, ${me} points contre ${him}.`);
+}
+
+// (`note` : à deux en ligne, ce qui a mis fin à la partie quand ce ne sont pas les points : abandon, forfait, dernier tour auquel on renonce)
 export function gameOver(winner, conceded = false, note = '') {
   game.phase = 'over';
   updateUI();

@@ -4,13 +4,14 @@ import { CONFIG, isCoarse, RULES } from '../config.js';
 import { $ } from '../outils.js';
 import { dice } from '../des.js';
 import { formatParts } from '../regles.js';
-import { bankBlock, game, OPENING, selectionInfo, shownScores } from '../partie.js';
+import { bankBlock, canGiveUp, game, OPENING, selectionInfo, shownScores } from '../partie.js';
+import { applyLayout } from '../scene.js';
 import { sfxTick } from '../sons.js';
 
 export const el = {
   scores: [$('score-0'), $('score-1')], rows: [$('row-0'), $('row-1')], bars: [$('bar-0'), $('bar-1')],
   banner: $('turn-banner'), turnScore: $('turn-score'), selScore: $('sel-score'), selDetail: $('sel-detail'), hint: $('hint'),
-  roll: $('btn-roll'), bank: $('btn-bank'), toast: $('toast'),
+  roll: $('btn-roll'), bank: $('btn-bank'), giveUp: $('btn-giveup'), toast: $('toast'),
 };
 el.rollLbl = el.roll.querySelector('.lbl');
 el.bankLbl = el.bank.querySelector('.lbl');
@@ -34,6 +35,10 @@ export function updateUI() {
   el.bank.disabled = !canBank;
   el.rollLbl.textContent = game.phase === 'choosing' && mine ? (left === 0 && sel.valid ? 'Relancer les 6' : `Relancer (${left})`) : 'Lancer';
   el.bankLbl.textContent = canBank ? `Garder ${game.turnScore + sel.score}` : 'Garder';
+  // « Abandonner » reste affiché tout le dernier tour (inactif pendant que les dés roulent) ; le panneau grandit, on recadre le plateau
+  const lastTurn = mine && game.finalFrom === 1 && game.phase !== 'menu' && game.phase !== 'over';
+  if (el.giveUp.hidden === lastTurn) { el.giveUp.hidden = !lastTurn; requestAnimationFrame(applyLayout); }
+  el.giveUp.disabled = !canGiveUp();
 
   // ce qui empêche encore de garder : dernier tour à gagner, ou score à ouvrir
   const need = game.finalFrom !== null ? `Dernier tour : il te faut plus de ${game.scores[1] - game.scores[0]} points.`

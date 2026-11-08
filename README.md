@@ -81,7 +81,7 @@ la partie en spectateur. Le choix est gardé dans `farkle.adversaire`.
 Chacun commence une partie sur deux. Dès qu’un joueur atteint l’objectif, l’autre joue un dernier tour et doit le dépasser.
 Si l’adversaire aborde son dernier tour avec 3000 points de retard ou plus (`HOPELESS` dans `js/ia.js`), il sait la partie
 perdue : il abandonne sans lancer, le dit (moment `abandon`) et la fin de partie l’annonce (`gaveUp` dans `js/adversaires.js`).
-Le joueur, lui, joue toujours son dernier tour.
+Le joueur peut lui aussi renoncer à son dernier tour : le bouton « Abandonner » (à confirmer d’un second clic) donne la partie à l’autre, et à deux en ligne la revanche reste possible.
 Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouverture à 500 points et trois Farkles = −500.
 
 ## Effets de la table
@@ -119,6 +119,8 @@ sa propre chute et lui impose ces faces, voir `throwDice`), un dé pris ou repos
 Reprise : après une coupure, le serveur renvoie les gestes manqués. Après un rechargement, il renvoie le dernier instantané (`envoyerEtat`, à chaque début de tour
 et chaque lancer posé) et les gestes qui le suivent ; la clé `farkle.table` garde la place et la mise payée. Si le serveur ne connaît plus la table, la mise est rendue.
 Un joueur absent depuis 3 minutes peut perdre par forfait ; abandonner donne le pot à l’autre. La sauvegarde d’une partie solo reste de côté.
+
+Réactions : le sceau rond au-dessus des commandes déplie une barre d’icônes ; chacune lance une animation en haut au centre, chez les deux joueurs (`REACTIONS` dans `js/ui/reactions.js`, animations `react-…` dans le CSS). Le serveur la passe à l’autre joueur sans la journaliser, une par seconde au plus : qui est absent ne la reçoit pas.
 
 Le serveur tourne sur jibhey.fr dans le conteneur `farkle-serveur` (`/srv/apps/farkle`, port local 4322), publié par Caddy sur `/ws`.
 Ses tests : `cd serveur && npm test`.

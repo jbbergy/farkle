@@ -63,7 +63,8 @@ function rulesHTML() {
 
     <h3>La fin de la partie</h3>
     <p>Dès qu’un joueur atteint <b>${RULES.target}</b> points, l’autre joue un <b>dernier tour</b> : il doit le <b>dépasser</b> pour l’emporter,
-      et il ne peut garder ses points qu’une fois passé devant. S’il fait un Farkle, le premier arrivé gagne la partie.</p>
+      et il ne peut garder ses points qu’une fois passé devant. S’il fait un Farkle, le premier arrivé gagne la partie.
+      Si l’écart te semble impossible à combler, le bouton <b>Abandonner</b> met fin à ce dernier tour : l’autre gagne la partie et le pot.</p>
     <p>Pour que personne ne soit avantagé, chacun <b>commence</b> une partie sur deux : une fois toi, une fois ton adversaire.</p>
 
     <h3>Bon à savoir</h3>
@@ -95,6 +96,7 @@ function rulesHTML() {
       Celui qui <b>rejoint</b> entre ce code et son nom, puis voit la table avant de miser. Ses règles de la maison sont celles de la partie.</p>
     <p>Si les dés spéciaux sont permis, chacun joue avec les dés qu’il a <b>en main</b> au moment de créer ou de rejoindre la partie. Ta mise sort de ta bourse et tes gains y reviennent, comme contre les adversaires de la taverne.</p>
     <p>Si tu perds la connexion, tu reviens à ta place dès qu’elle revient, même après avoir fermé la page : le menu te propose de reprendre. Si l’autre reste absent trois minutes, tu peux gagner <b>par forfait</b>. Abandonner donne la partie et le pot à l’autre.</p>
+    <p>Pendant la partie, le petit sceau rond au-dessus de tes commandes déplie une barre d’icônes : chacune envoie à l’autre joueur une <b>réaction animée</b>, qui s’affiche en haut de vos deux écrans.</p>
 
     <h3>Les règles de la maison</h3>
     <p>Deux règles connues des tavernes, à choisir dans les réglages (la roue dentée) ; elles comptent dès la partie suivante, pour les deux joueurs.</p>

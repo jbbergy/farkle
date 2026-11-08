@@ -6,7 +6,7 @@ import { $, clamp } from './outils.js';
 import { DIE_KINDS, faceValue } from './des-speciaux.js';
 import { camera, canvasEl, resetView, scene, view } from './scene.js';
 import { allDice, dice } from './des.js';
-import { bankAction, canSelect, game, rollAction, toggleDie } from './partie.js';
+import { bankAction, canSelect, game, giveUp, rollAction, toggleDie } from './partie.js';
 import { clampPan, groundPointAt, toNdc, zoomAt, zoomCenter } from './cadrage.js';
 import { catchBug } from './evenements.js';
 import { kindIcon } from './ui/icones.js';
@@ -15,6 +15,7 @@ import { closeRules } from './ui/page-regles.js';
 import { closeShop } from './ui/echoppe.js';
 import { closeCarnet } from './ui/page-carnet.js';
 import { closeOnline } from './ui/page-en-ligne.js';
+import { closeReactions } from './ui/reactions.js';
 import { settingsPanel, toggleSettings } from './ui/reglages.js';
 
 export const raycaster = new THREE.Raycaster();
@@ -212,8 +213,19 @@ export function initInput() {
   scene.add(focusRing);
   el.roll.addEventListener('click', (e) => { e.currentTarget.blur(); if (game.current === 0) rollAction(); });
   el.bank.addEventListener('click', (e) => { e.currentTarget.blur(); if (game.current === 0) bankAction(); });
+  // Abandonner son dernier tour : à confirmer d’un second clic
+  let giveUpTimer = null;
+  el.giveUp.addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    if (e.detail) b.blur(); // à la souris : le clavier reste aux dés
+    clearTimeout(giveUpTimer);
+    const reset = () => { b.dataset.armed = ''; b.textContent = 'Abandonner'; };
+    if (b.dataset.armed === '1') { reset(); giveUp(); return; }
+    b.dataset.armed = '1'; b.textContent = 'Sûr ? Abandonner';
+    giveUpTimer = setTimeout(reset, 4000);
+  });
   addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeRules(); closeShop(); closeCarnet(); closeOnline(); toggleSettings(false); return; }
+    if (e.key === 'Escape') { closeRules(); closeShop(); closeCarnet(); closeOnline(); toggleSettings(false); closeReactions(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('rules').classList.contains('hidden') || !settingsPanel.classList.contains('hidden')) return;
     if (game.phase === 'menu' || game.phase === 'over') return;
@@ -225,6 +237,10 @@ export function initInput() {
     else if (DIRS[k]) { e.preventDefault(); if (myChoice) moveFocus(...DIRS[k]); }
     else if (k === 'r') { e.preventDefault(); kb.active = true; if (!e.repeat && !el.roll.disabled) el.roll.click(); }
     else if (k === 'g') { e.preventDefault(); if (!e.repeat && !el.bank.disabled) el.bank.click(); }
-    else if (k === ' ' || k === 'enter') { e.preventDefault(); if (!e.repeat && myChoice) toggleFocused(); }
+    else if (k === ' ' || k === 'enter') {
+      if (e.target.closest?.('#react-dock, #btn-giveup')) return; // ces boutons-là s’actionnent au clavier
+      e.preventDefault();
+      if (!e.repeat && myChoice) toggleFocused();
+    }
   });
 }

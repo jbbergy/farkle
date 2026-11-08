@@ -11,12 +11,13 @@ import { setFriend } from './adversaires.js';
 import { saveWallet, wallet } from './bourse.js';
 import { applyOppLook, dice } from './des.js';
 import { cancelReplay } from './lancer.js';
-import { bankAction, game, gameOver, rollAction, startGame, toggleDie } from './partie.js';
+import { bankAction, finishGiveUp, game, gameOver, rollAction, startGame, toggleDie } from './partie.js';
 import { sfxHot } from './sons.js';
 import { toast, updateUI } from './ui/hud.js';
 import { backToMenu, renderMenu } from './ui/menu.js';
 import { fitModal } from './ui/parchemin.js';
 import { fermerEnLigne, montrerAttente } from './ui/page-en-ligne.js';
+import { reactionRecue, syncReactions } from './ui/reactions.js';
 
 const STORE = 'farkle.table', NAME_KEY = 'farkle.nom';
 export const FORFEIT_DELAY = 180000; // comme forfeitAfter dans serveur/serveur.js
@@ -108,6 +109,7 @@ function recevoir(m) {
   }
   const on = { repris, debut: lancerManche, action: recuAction, presence: recuPresence, erreur: recuErreur,
     ack(a) { table.sortants = table.sortants.filter((s) => s.cid !== a.cid); },
+    reaction(r) { reactionRecue(r.r); },
     revanche() { table.revanche.lui = true; majRevanche(); },
     parti() { table.parti = true; majRevanche(); } }[m.t];
   if (on) on(m);
@@ -229,6 +231,9 @@ export function geste(a) {
   sortant({ t: 'action', cid, a });
 }
 export function envoyerLancer(values) { geste({ k: 'lancer', v: values }); }
+// Une réaction ne compte pas dans la partie : elle n’attend pas, et n’est pas rejouée après une coupure
+export const peutReagir = () => game.online && table.connecte && table.autreLa && !table.remplacee;
+export function envoyerReaction(r) { sendRaw({ t: 'reaction', r }); }
 // Instantané à un point stable, pour un joueur qui recharge sa page ; il compte pour tous les gestes reçus jusque-là
 // par le serveur : on s’abstient donc tant qu’on rattrape des gestes plus récents
 export function envoyerEtat() {
@@ -250,7 +255,7 @@ function recuAction(m) {
   pompe();
 }
 // Un geste attend que la partie en soit au bon point : fin d’une animation, passage au tour de son auteur
-const PHASES = { lancer: ['idle', 'choosing'], de: ['choosing'], garder: ['choosing'] };
+const PHASES = { lancer: ['idle', 'choosing'], de: ['choosing'], garder: ['choosing'], renonce: ['idle', 'choosing'] };
 async function pret(k, side, manche) {
   for (;;) {
     if (!game.online || table.manche !== manche || game.phase === 'over') return false;
@@ -285,7 +290,8 @@ async function appliquer(m) {
     return;
   }
   if (!PHASES[a.k] || !(await pret(a.k, side, table.manche))) return;
-  if (a.k === 'lancer') {
+  if (a.k === 'renonce') finishGiveUp(side);
+  else if (a.k === 'lancer') {
     if (side === 1) { game.aiStatus = 'Les dés roulent…'; updateUI(); }
     const res = await rollAction(a.v);
     if (res === 'ok' && side === 1) { game.aiStatus = `${CONFIG.ai} choisit ses dés…`; updateUI(); }
@@ -368,6 +374,7 @@ function majBandeau() {
   btn.hidden = !canForfeit;
   box.classList.toggle('hidden', !text);
   if ($('net-text').textContent !== text) $('net-text').textContent = text;
+  syncReactions();
 }
 let annonceTexte = '', annonceFin = 0;
 export function annonce(text, ms = 9000) {

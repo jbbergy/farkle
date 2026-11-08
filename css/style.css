@@ -722,3 +722,138 @@ button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset:
 #gameover .btn[hidden] { display: none; }
 #go-rematch:empty { display: none; }
 @media (prefers-reduced-motion: reduce) { .modal .online-wait { animation: none; } }
+
+/* ───────── À la table : abandon du dernier tour et réactions (js/ui/reactions.js) ───────── */
+#btn-giveup { width: 100%; min-height: 2.75rem; margin-top: 0.5rem; }
+#btn-giveup[hidden], #btn-react[hidden] { display: none; }
+
+/* le sceau, juste au-dessus du panneau des commandes, à droite ; la barre d’icônes se déplie vers la gauche */
+#react-dock {
+  position: absolute; right: 0; bottom: calc(100% + 14px); width: max-content; max-width: calc(100vw - 24px);
+  display: flex; flex-direction: row-reverse; align-items: center; gap: 12px;
+}
+#btn-react { flex: none; }
+#btn-react svg { width: 1.7rem; height: 1.7rem; vertical-align: -0.45rem; }
+#btn-react:disabled { filter: grayscale(0.8) brightness(0.7); cursor: not-allowed; }
+#react-panel { min-width: 0; padding: 0.4rem 0.5rem; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.3rem; }
+#react-panel { animation: react-open 0.2s ease-out; } /* elle se déplie depuis le sceau, vers la gauche */
+#react-panel.hidden { display: none; }
+@keyframes react-open {
+  from { opacity: 0; transform: translateX(14px); clip-path: inset(-12px -12px -12px 100%); }
+  to { opacity: 1; transform: none; clip-path: inset(-12px); }
+}
+.react-icon {
+  width: 2.875rem; height: 2.875rem; padding: 0.3rem; border: none; border-radius: 50%; cursor: pointer; touch-action: manipulation;
+  background: rgba(255, 249, 228, 0.6); transition: transform 0.12s, background 0.15s;
+}
+.react-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.react-icon:active { transform: scale(0.92); }
+.react-icon:focus-visible { outline: 2px dashed var(--ink); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) { .react-icon:hover { transform: scale(1.12); background: rgba(255, 249, 228, 0.95); } }
+
+/* l’animation, en haut au centre : un médaillon de parchemin, lisible sur la table comme sur les panneaux */
+#react-stage {
+  position: fixed; z-index: 25; left: 0; right: 0; top: calc(14px + env(safe-area-inset-top)); display: flex; justify-content: center; pointer-events: none;
+}
+.react-medal {
+  width: 10rem; height: 10rem; padding: 1.75rem; border-radius: 50%;
+  background: radial-gradient(circle at 40% 34%, #fbf0d4, #dfc898 68%, #b8935a);
+  box-shadow: 0 0 0 0.3rem #8e1e14, 0 10px 26px rgba(0, 0, 0, 0.75);
+  animation: react-medal 2.5s ease both;
+}
+.react-medal svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.react-medal [class^="a-"] { transform-box: fill-box; transform-origin: center; }
+@keyframes react-medal {
+  0% { opacity: 0; transform: scale(0.35); }
+  10% { opacity: 1; transform: scale(1.1); }
+  17%, 90% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.9); }
+}
+/* Bien joué : le pouce se dresse, l’éclat rayonne */
+.react-medal .a-thumb { animation: react-thumb 2.2s ease-out both; }
+.react-medal .a-ray { animation: react-ray 0.85s ease-out 0.3s 2 both; }
+@keyframes react-thumb {
+  0% { transform: translateY(35%) rotate(-30deg); }
+  18% { transform: translateY(-6%) rotate(10deg); }
+  30% { transform: rotate(-5deg); }
+  42%, 100% { transform: none; }
+  60% { transform: scale(1.1); }
+}
+@keyframes react-ray { 0% { opacity: 0; transform: translateY(12px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-5px); } }
+/* Quelle veine : le trèfle tourne et s’ouvre, les étoiles scintillent */
+.react-medal .a-spin { animation: react-spin 2.2s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.react-medal .a-spark { animation: react-spark 0.75s ease-in-out 2 both; }
+@keyframes react-spin { 0% { transform: rotate(-300deg) scale(0.2); } 45% { transform: rotate(0) scale(1.12); } 60%, 100% { transform: scale(1); } }
+@keyframes react-spark { 0%, 100% { opacity: 0; transform: scale(0.2) rotate(-40deg); } 50% { opacity: 1; transform: scale(1.15) rotate(0); } }
+/* Aïe : un dé tombe sur le crâne, le visage s’écrase, les étoiles partent */
+.react-medal .a-die { animation: react-die 2.2s ease-in both; }
+.react-medal .a-wince { transform-origin: 50% 100%; animation: react-wince 2.2s ease both; }
+.react-medal .a-bang { animation: react-spark 0.6s ease-out 2 both; }
+@keyframes react-die {
+  0% { opacity: 0; transform: translateY(-220%) rotate(-50deg); }
+  8% { opacity: 1; }
+  26% { transform: translateY(0) rotate(8deg); animation-timing-function: ease-out; }
+  42% { opacity: 1; transform: translate(150%, -160%) rotate(150deg); }
+  56%, 100% { opacity: 0; transform: translate(260%, -60%) rotate(260deg); }
+}
+@keyframes react-wince {
+  0%, 25% { transform: none; }
+  30% { transform: scale(1.14, 0.74); }
+  38% { transform: scale(0.95, 1.07); }
+  44%, 56%, 68% { transform: translateX(-4%) rotate(-3deg); }
+  50%, 62%, 74% { transform: translateX(4%) rotate(3deg); }
+  84%, 100% { transform: none; }
+}
+/* Ha ha ha : le visage sautille, les larmes jaillissent */
+.react-medal .a-laugh { animation: react-laugh 0.34s ease-in-out 6 alternate both; }
+.react-medal .a-tear-l { animation: react-tear-l 0.68s ease-out 3 both; }
+.react-medal .a-tear-r { animation: react-tear-r 0.68s ease-out 3 both; }
+@keyframes react-laugh { 0% { transform: rotate(-9deg); } 50% { transform: translateY(-13%); } 100% { transform: rotate(9deg); } }
+@keyframes react-tear-l { 0% { opacity: 0; transform: translate(70%, 0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-110%, 130%); } }
+@keyframes react-tear-r { 0% { opacity: 0; transform: translate(-70%, 0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(110%, 130%); } }
+/* Alors, ça vient : le sablier s’agite, le sable coule, on le retourne */
+.react-medal .a-flip { animation: react-flip 2.2s ease-in-out both; }
+.react-medal .a-top { transform-origin: 50% 100%; animation: react-sand-top 2.2s linear both; }
+.react-medal .a-bottom { transform-origin: 50% 100%; animation: react-sand-bottom 2.2s linear both; }
+@keyframes react-flip {
+  0%, 44%, 62% { transform: none; }
+  8%, 24% { transform: rotate(-11deg); }
+  16%, 32% { transform: rotate(11deg); }
+  80%, 100% { transform: rotate(180deg); }
+}
+@keyframes react-sand-top { 0% { transform: none; } 62%, 100% { transform: scale(0.35, 0.2); } }
+@keyframes react-sand-bottom { 0% { transform: scale(0.35, 0.2); } 62%, 100% { transform: none; } }
+/* À ta santé : les deux chopes s’entrechoquent, deux fois */
+.react-medal .a-cheer { transform-origin: 50% 100%; animation: react-cheer 2.2s ease-in-out both; }
+@keyframes react-cheer {
+  0% { transform: translateX(22%) rotate(14deg); }
+  28% { transform: translateX(-8%) rotate(-16deg); }
+  42% { transform: translateX(16%) rotate(9deg); }
+  60% { transform: translateX(-8%) rotate(-16deg); }
+  76%, 100% { transform: translateX(4%) rotate(-3deg); }
+}
+.react-medal[data-r="sante"] .a-bang { animation-iteration-count: 2; animation-duration: 0.72s; }
+@media (prefers-reduced-motion: reduce) {
+  #react-panel { animation: none; }
+  .react-medal { animation: react-medal-calm 2.5s linear both; }
+  .react-medal * { animation: none !important; }
+  .react-medal .a-die { display: none; }
+}
+@keyframes react-medal-calm { 0%, 100% { opacity: 0; } 8%, 92% { opacity: 1; } }
+
+@media (orientation: portrait) {
+  .react-medal { width: 8rem; height: 8rem; padding: 1.4rem; }
+  /* les six icônes sur une seule ligne tant qu’elles restent assez grandes ; sinon, sur deux */
+  #react-panel .react-icon { width: clamp(38px, calc((100vw - 36px - 5.25rem) / 6), 2.75rem); height: clamp(38px, calc((100vw - 36px - 5.25rem) / 6), 2.75rem); padding: 0.2rem; }
+}
+@media (orientation: portrait), (orientation: landscape) and (max-height: 560px) {
+  #btn-giveup { order: 2; margin-top: 6px; padding-block: 0.3em; }
+  .react-icon { width: 2.75rem; height: 2.75rem; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  /* le panneau des commandes prend toute la hauteur : le sceau se place contre lui, à gauche, en bas */
+  #react-dock { right: calc(100% + 14px); bottom: 0; }
+  .react-medal { width: 6.5rem; height: 6.5rem; padding: 1.1rem; }
+  /* le dernier tour ajoute un bouton : tout doit tenir dans la hauteur */
+  #actions:has(#btn-giveup:not([hidden])) .buttons .btn, #btn-giveup { min-height: 2.5rem; }
+}
