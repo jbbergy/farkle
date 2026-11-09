@@ -41,17 +41,65 @@ const TANKARD = `<path d="M66 42H78Q87 42 87 52V64Q87 74 78 74H66" fill="none" s
   <path d="M26 36Q23 22 37 23Q42 12 52 18Q64 12 68 24Q77 28 70 37Z" fill="#fff6df" ${LINE}/>`;
 const cheers = (t) => `<g transform="${t}"><g class="a-cheer">${TANKARD}</g></g>`;
 
+const eye = (x) => `<g class="a-wide"><circle cx="${x}" cy="46" r="9.5" fill="#fffaf0" ${LINE}/><circle cx="${x}" cy="46" r="3.5" fill="${INK}"/></g>`;
+const AMAZED = `<circle cx="50" cy="54" r="38" fill="#f2c14e" ${LINE}/>
+  <path class="a-brows" d="M25 31Q33 22 42 28M58 28Q67 22 75 31" fill="none" ${LINE}/>${eye(35)}${eye(65)}
+  <ellipse class="a-o" cx="50" cy="75" rx="8.5" ry="10.5" fill="#7a1510" ${LINE}/>`;
+const mark = (x, a, delay) => `<g transform="rotate(${a} ${x} 30)"><g class="a-excl" style="animation-delay:${delay}s"><path d="M${x} 6V28" stroke="#b5401f" stroke-width="8" stroke-linecap="round"/><circle cx="${x}" cy="41" r="4.5" fill="#b5401f"/></g></g>`;
+
+const pip = (x, y) => `<circle cx="${x}" cy="${y}" r="6" fill="${INK}"/>`;
+const MISSED_DIE = `<rect x="8" y="8" width="66" height="66" rx="11" fill="#f4e6c6" ${LINE}/>${[[59, 23], [41, 41], [23, 59]].map(([x, y]) => pip(x, y)).join('')}`;
+const CROSS = `<path d="M56 56L95 95M95 56L56 95" fill="none" stroke="${INK}" stroke-width="18" stroke-linecap="round"/><path d="M56 56L95 95M95 56L56 95" fill="none" stroke="#c8321f" stroke-width="9" stroke-linecap="round"/>`;
+
+const SOBBING = `<circle cx="50" cy="60" r="37" fill="#d8cd9c" ${LINE}/>
+  <path d="M26 47L41 39M74 47L59 39" fill="none" ${LINE}/>
+  <path d="M27 54Q34 60 41 54M59 54Q66 60 73 54" fill="none" ${LINE}/>
+  <path d="M35 85Q50 70 65 85" fill="none" ${LINE}/>
+  <path class="a-cry" d="M33 60q-7 10 0 15q7 -5 0 -15Z" fill="#3f8fd0" ${THIN}/>
+  <path class="a-cry" style="animation-delay:0.4s" d="M67 60q-7 10 0 15q7 -5 0 -15Z" fill="#3f8fd0" ${THIN}/>`;
+const CLOUD = `<path class="a-cloud" d="M30 22Q17 22 19 12Q21 4 31 6Q38 -6 52 0Q65 -6 70 6Q82 6 81 16Q80 22 70 22Z" fill="#8894a8" ${LINE}/>`;
+
+const ANGRY = `<circle class="a-heat" cx="50" cy="56" r="37" fill="#d9532f" ${LINE}/>
+  <path d="M26 39L43 49M74 39L57 49" fill="none" ${LINE}/>
+  <circle cx="37" cy="55" r="4.5" fill="${INK}"/><circle cx="63" cy="55" r="4.5" fill="${INK}"/>
+  <rect x="31" y="70" width="38" height="14" rx="3" fill="#fff6df" ${LINE}/><path d="M41 71V83M50 71V83M59 71V83" fill="none" stroke="${INK}" stroke-width="3"/>`;
+const puff = (x, y, r, cls, delay) => `<circle class="${cls}" style="animation-delay:${delay}s" cx="${x}" cy="${y}" r="${r}" fill="#a9acb0" ${THIN}/>`;
+
+const TEASING = `<circle cx="50" cy="50" r="40" fill="#f2c14e" ${LINE}/>
+  <circle cx="35" cy="40" r="6" fill="${INK}"/><path d="M57 42Q65 33 74 42" fill="none" ${LINE}/>
+  <path d="M30 59Q50 73 70 59" fill="none" ${LINE}/>
+  <path class="a-tongue" d="M43 66V80Q43 91 53 91Q63 91 63 80V66Q53 70 43 66Z" fill="#d9576b" ${LINE}/>`;
+
+const zed = (x, y, s, delay) => `<path class="a-z" style="animation-delay:${delay}s" d="M${x} ${y}h${s}l${-s} ${s}h${s}" fill="none" stroke="#3b5a9a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
+const SLEEPY = `<circle cx="44" cy="60" r="36" fill="#e9d9a0" ${LINE}/>
+  <path d="M22 54Q29 60 36 54M52 54Q59 60 66 54" fill="none" ${LINE}/>
+  <ellipse class="a-snore" cx="44" cy="77" rx="6.5" ry="5.5" fill="#7a1510" ${LINE}/>`;
+
+const FINGERS = 'M30 58V24M43 58V12M56 58V14M69 58V26M36 74L12 48';
+const HAND = `<path d="${FINGERS}" fill="none" stroke="${INK}" stroke-width="13" stroke-linecap="round"/>
+  <path d="M24 48H75V70Q75 93 53 93H46Q24 93 24 70Z" fill="#efc48c" ${LINE}/>
+  <path d="${FINGERS}" fill="none" stroke="#efc48c" stroke-width="5" stroke-linecap="round"/>`;
+
 // (identifiants en minuscules : le serveur refuse le reste)
 const REACTIONS = [
   { id: 'bravo', text: 'Bien joué !', icon: svg(THUMB), scene: svg(`${RAYS}<g class="a-thumb">${THUMB}</g>`) },
   { id: 'veine', text: 'Quelle veine !', icon: svg(CLOVER),
     scene: svg(`${CLOVER}${star(10, 14, 11, 0.7)}${star(90, 18, 9, 1.05)}${star(90, 86, 11, 0.85)}${star(10, 84, 9, 1.2)}`) },
+  { id: 'oh', text: 'Ça alors !', icon: svg(AMAZED), scene: svg(`<g class="a-gasp">${AMAZED}</g>${mark(2, -12, 0)}${mark(98, 12, 0.1)}`) },
+  { id: 'nana', text: 'Nananère !', icon: svg(TEASING), scene: svg(`<g class="a-tease">${TEASING}</g>`) },
+  { id: 'zut', text: 'Zut, raté !', icon: svg(`${MISSED_DIE}${CROSS}`), scene: svg(`<g class="a-missed">${MISSED_DIE}</g><g class="a-stamp">${CROSS}</g>`) },
+  { id: 'snif', text: 'Snif, j’ai perdu…', icon: svg(`<g transform="translate(0 -9)">${SOBBING}</g>`), scene: svg(`${CLOUD}<g class="a-sob">${SOBBING}</g>`) },
   { id: 'aie', text: 'Aïe, aïe, aïe !', icon: svg(`<g transform="translate(0 -8)">${WINCE}</g>`),
     scene: svg(`<g class="a-wince">${WINCE}</g>${FALLING_DIE}${star(15, 24, 11, 0.62, 'a-bang')}${star(85, 24, 11, 0.72, 'a-bang')}${star(50, 12, 9, 0.82, 'a-bang')}`) },
   { id: 'rire', text: 'Ha ha ha !', icon: svg(LAUGH), scene: svg(`<g class="a-laugh">${LAUGH}</g>${tear(9, 'a-tear-l')}${tear(91, 'a-tear-r')}`) },
+  { id: 'grrr', text: 'Grrr !', icon: svg(`<g transform="translate(0 -6)">${ANGRY}</g>`),
+    scene: svg(`<g class="a-rage">${ANGRY}</g>${puff(10, 44, 8, 'a-puff-l', 0.7)}${puff(90, 44, 8, 'a-puff-r', 0.7)}${puff(10, 44, 6, 'a-puff-l', 1.15)}${puff(90, 44, 6, 'a-puff-r', 1.15)}`) },
   { id: 'vite', text: 'Alors, ça vient ?', icon: svg(`${GLASS}${SAND}${BARS}`), scene: svg(`<g class="a-flip">${GLASS}${SAND}${BARS}</g>`) },
+  { id: 'zzz', text: 'Zzz…', icon: svg(`${SLEEPY}${zed(66, 26, 11, 0)}${zed(80, 6, 14, 0)}`), scene: svg(`<g class="a-nod">${SLEEPY}</g>${zed(66, 26, 11, 0.15)}${zed(80, 6, 14, 0.65)}${zed(92, -18, 17, 1.15)}`) },
   { id: 'sante', text: 'À ta santé !', icon: svg(`<g transform="translate(-7 0)">${TANKARD}</g>`),
     scene: svg(`${cheers('translate(70 22) scale(-0.7 0.7)')}${cheers('translate(30 22) scale(0.7)')}${star(50, 14, 12, 0.62, 'a-bang')}`) },
+  { id: 'salut', text: 'Salut !', icon: svg(HAND),
+    scene: svg(`<g class="a-wave">${HAND}</g><path class="a-whoosh" d="M3 26Q-3 12 7 2M97 26Q103 12 93 2" fill="none" stroke="#b5401f" stroke-width="5" stroke-linecap="round"/>`) },
 ];
 const PAUSE = 1500;  // entre deux réactions envoyées (le serveur en laisse passer une par seconde)
 const SHOWN = 2500;  // comme l’animation react-medal dans le CSS

@@ -730,7 +730,7 @@ button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset:
 /* le sceau, juste au-dessus du panneau des commandes, à droite ; la barre d’icônes se déplie vers la gauche */
 #react-dock {
   position: absolute; right: 0; bottom: calc(100% + 14px); width: max-content; max-width: calc(100vw - 24px);
-  display: flex; flex-direction: row-reverse; align-items: center; gap: 12px;
+  display: flex; flex-direction: row-reverse; align-items: flex-end; gap: 12px;
 }
 #btn-react { flex: none; }
 #btn-react svg { width: 1.7rem; height: 1.7rem; vertical-align: -0.45rem; }
@@ -833,6 +833,75 @@ button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset:
   76%, 100% { transform: translateX(4%) rotate(-3deg); }
 }
 .react-medal[data-r="sante"] .a-bang { animation-iteration-count: 2; animation-duration: 0.72s; }
+/* Ça alors : d’un coup le visage sursaute, les yeux s’écarquillent, les points d’exclamation jaillissent */
+.react-medal .a-gasp { animation: react-gasp 2.2s ease-out both; }
+.react-medal .a-wide { animation: react-wide 2.2s ease-out both; }
+.react-medal .a-brows { animation: react-brows 2.2s ease-out both; }
+.react-medal .a-o { animation: react-o 2.2s ease-out both; }
+.react-medal .a-excl { animation: react-excl 2.2s ease-out both; }
+@keyframes react-gasp { 0%, 12% { transform: none; } 19% { transform: translateY(-15%) scale(1.07); } 31% { transform: translateY(3%); } 42%, 100% { transform: none; } }
+@keyframes react-wide { 0%, 12% { transform: scale(0.6); } 20% { transform: scale(1.4); } 40%, 100% { transform: scale(1.12); } }
+@keyframes react-brows { 0%, 12% { transform: none; } 20% { transform: translateY(-45%); } 40%, 100% { transform: translateY(-22%); } }
+@keyframes react-o { 0%, 12% { transform: scale(0.4); } 21% { transform: scale(1.25); } 40%, 100% { transform: none; } }
+@keyframes react-excl { 0%, 14% { opacity: 0; transform: translateY(35%) scale(0.4); } 26% { opacity: 1; transform: translateY(-6%) scale(1.2); } 38%, 100% { opacity: 1; transform: none; } }
+/* Zut, raté : le dé tombe, une croix rouge s’abat dessus, il fait non */
+.react-medal .a-missed { animation: react-missed 2.2s ease-out both; }
+.react-medal .a-stamp { animation: react-stamp 2.2s ease-in both; }
+@keyframes react-missed {
+  0% { opacity: 0; transform: translateY(-70%) rotate(-30deg); }
+  14% { opacity: 1; transform: rotate(6deg); }
+  22% { transform: translateY(-10%) rotate(-4deg); }
+  30%, 38% { transform: none; }
+  44% { transform: scale(0.9, 0.84); }
+  54% { transform: none; }
+  62%, 82% { transform: rotate(-9deg); }
+  72%, 92% { transform: rotate(9deg); }
+  100% { transform: none; }
+}
+@keyframes react-stamp {
+  0%, 30% { opacity: 0; transform: scale(2.3); }
+  43% { opacity: 1; transform: scale(0.95); animation-timing-function: ease-out; }
+  52%, 100% { opacity: 1; transform: none; }
+}
+/* Snif : le nuage arrive, le visage sanglote, les larmes coulent */
+.react-medal .a-cloud { animation: react-cloud 2.2s ease-out both; }
+.react-medal .a-sob { transform-origin: 50% 100%; animation: react-sob 0.5s ease-in-out 4 alternate both; }
+.react-medal .a-cry { animation: react-cry 0.8s ease-in 3 both; }
+@keyframes react-cloud { 0% { opacity: 0; transform: translateY(-70%); } 22%, 100% { opacity: 1; transform: none; } }
+@keyframes react-sob { 0% { transform: none; } 100% { transform: translateY(4%) scale(1.04, 0.93); } }
+@keyframes react-cry { 0% { opacity: 0; transform: translateY(-20%) scale(0.5); } 20% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(170%); } }
+/* Grrr : le visage rougit, tremble, la fumée sort des oreilles */
+.react-medal .a-heat { animation: react-heat 0.9s ease-in both; }
+.react-medal .a-rage { animation: react-rage 0.09s linear 0.75s 16 alternate both; }
+.react-medal .a-puff-l { animation: react-puff-l 0.85s ease-out both; }
+.react-medal .a-puff-r { animation: react-puff-r 0.85s ease-out both; }
+@keyframes react-heat { from { fill: #f2c14e; } to { fill: #d9532f; } }
+@keyframes react-rage { from { transform: translateX(-2.5%) rotate(-1.5deg); } to { transform: translateX(2.5%) rotate(1.5deg); } }
+@keyframes react-puff-l { 0% { opacity: 0; transform: translate(60%, 30%) scale(0.3); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-70%, -130%) scale(1.5); } }
+@keyframes react-puff-r { 0% { opacity: 0; transform: translate(-60%, 30%) scale(0.3); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(70%, -130%) scale(1.5); } }
+/* Nananère : la tête se balance, la langue sort et remue */
+.react-medal .a-tease { animation: react-tease 0.55s ease-in-out 4 alternate both; }
+.react-medal .a-tongue { transform-origin: 50% 0; animation: react-tongue 2.2s ease-in-out both; }
+@keyframes react-tease { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+@keyframes react-tongue {
+  0%, 8% { transform: scaleY(0.1); }
+  20% { transform: scaleY(1.2); }
+  30%, 54%, 78% { transform: rotate(-14deg); }
+  42%, 66%, 90% { transform: rotate(14deg); }
+  100% { transform: none; }
+}
+/* Zzz : la tête pique du nez, les Z montent */
+.react-medal .a-nod { transform-origin: 50% 100%; animation: react-nod 2.2s ease-in both; }
+.react-medal .a-snore { animation: react-snore 0.7s ease-in-out 3 alternate both; }
+.react-medal .a-z { animation: react-z 1.05s ease-out both; }
+@keyframes react-nod { 0% { transform: rotate(-3deg); } 72% { transform: translateY(5%) rotate(11deg); animation-timing-function: ease-out; } 80% { transform: rotate(-5deg); } 100% { transform: rotate(0); } }
+@keyframes react-snore { from { transform: scale(0.65); } to { transform: scale(1.35); } }
+@keyframes react-z { 0% { opacity: 0; transform: translate(-30%, 60%) scale(0.5); } 25% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(25%, -55%) scale(1.15); } }
+/* Salut : la main s’agite */
+.react-medal .a-wave { transform-origin: 50% 100%; animation: react-wave 0.28s ease-in-out 8 alternate both; }
+.react-medal .a-whoosh { animation: react-whoosh 0.56s ease-in-out 4 both; }
+@keyframes react-wave { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+@keyframes react-whoosh { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   #react-panel { animation: none; }
   .react-medal { animation: react-medal-calm 2.5s linear both; }
@@ -843,12 +912,12 @@ button.hand-slot:focus-visible { outline: 2px dashed var(--ink); outline-offset:
 
 @media (orientation: portrait) {
   .react-medal { width: 8rem; height: 8rem; padding: 1.4rem; }
-  /* les six icônes sur une seule ligne tant qu’elles restent assez grandes ; sinon, sur deux */
-  #react-panel .react-icon { width: clamp(38px, calc((100vw - 36px - 5.25rem) / 6), 2.75rem); height: clamp(38px, calc((100vw - 36px - 5.25rem) / 6), 2.75rem); padding: 0.2rem; }
 }
 @media (orientation: portrait), (orientation: landscape) and (max-height: 560px) {
   #btn-giveup { order: 2; margin-top: 6px; padding-block: 0.3em; }
   .react-icon { width: 2.75rem; height: 2.75rem; }
+  /* neuf icônes ne tiennent pas sur une ligne sans rapetisser : cinq par rangée, à leur taille */
+  #react-panel { max-width: calc(5 * 2.75rem + 4 * 0.3rem + 1rem + 1px); }
 }
 @media (orientation: landscape) and (max-height: 560px) {
   /* le panneau des commandes prend toute la hauteur : le sceau se place contre lui, à gauche, en bas */
