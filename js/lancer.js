@@ -6,7 +6,7 @@ import { CONFIG } from './config.js';
 import { rand, sleep } from './outils.js';
 import { DIE_KINDS } from './des-speciaux.js';
 import { MASK_ALL, MASK_ENTER_L, MASK_ENTER_R, world } from './physique.js';
-import { FACES, moveDie, placeBodyAtMesh, randomQuat, setInWorld, spawnPos, storeRest, topFace } from './des.js';
+import { DIE_DAMPING, FACES, moveDie, placeBodyAtMesh, randomQuat, setInWorld, spawnPos, storeRest, topFace } from './des.js';
 import { envoyerLancer } from './en-ligne.js';
 import { game } from './partie.js';
 import { sfxHit, sfxRattle } from './sons.js';
@@ -28,24 +28,15 @@ export async function throwDice(list, side, imposed = null) {
   if (tk !== game.token) return false;
   await sleep(140);
   if (tk !== game.token) return false;
-  const dir = side === 0 ? -1 : 1;
-  const { halfW } = CONFIG.play;
-  for (const d of list) {
-    const b = d.body, p = d.mesh.position;
-    placeBodyAtMesh(d);
-    const vx = rand(16, 21);
-    const T = (Math.abs(p.x) - CONFIG.board.w / 2) / vx; // instant où le dé survole le bord du plateau
-    const vy = (2.4 - p.y + 0.5 * -CONFIG.gravity * T * T) / T;
-    b.velocity.set(dir * vx, vy, (rand(-2.5, 2.5) - p.z) / (T + 0.25));
-    b.angularVelocity.set(rand(-25, 25), rand(-15, 15), rand(-25, 25));
-    b.collisionFilterMask = side === 0 ? MASK_ENTER_R : MASK_ENTER_L;
-    d.entering = side === 0 ? 'R' : 'L';
-    b.wakeUp();
-    setInWorld(d, true);
-    d.physics = false; // l’image attend le résultat du calcul, hors écran
+  // Un lancer où un dé finirait hors du plateau est recalculé avec d’autres élans, depuis les mêmes points de départ :
+  // rien n’est encore à l’écran, le joueur ne voit que le lancer retenu
+  let rec;
+  for (let tries = 1; ; tries++) {
+    launch(list, side);
+    rec = await simulateThrow(list);
+    if (tk !== game.token) return false;
+    if (!rec.lost || tries >= MAX_TRIES) { rec.tries = tries; break; }
   }
-  const rec = await simulateThrow(list);
-  if (tk !== game.token) return false;
   const values = [];
   const offsets = list.map((d, i) => {
     const kind = d.kind && DIE_KINDS[d.kind];
@@ -61,6 +52,46 @@ export async function throwDice(list, side, imposed = null) {
   if (game.online && !imposed) envoyerLancer(values);
   return new Promise((resolve) => { replayJob = { list, rec, offsets, t: 0, sound: 0, resolve }; });
 }
+const MAX_TRIES = 6;
+// Élan des dés, depuis leur point de départ hors écran : chacun survole le bord du plateau à hauteur de main.
+// Tous filent à la même vitesse, et la poignée s’élargit ou se resserre sans que ses rangées se croisent :
+// aucun dé n’en percute un autre en vol, ce qui pourrait le faire retomber à côté du plateau.
+// Sur un grand écran d’ordinateur, les dés du joueur partent de loin (sous la colonne de droite) : ils filent alors
+// plus vite, pour ne pas monter en chandelle et retomber à la verticale au bord du plateau.
+function launch(list, side) {
+  const dir = side === 0 ? -1 : 1, edge = CONFIG.board.w / 2;
+  const xs = list.map((d) => Math.abs(d.mesh.position.x)), zs = list.map((d) => d.mesh.position.z);
+  const vx = Math.max(rand(16, 21), (Math.min(...xs) - edge) / rand(0.55, 0.7));
+  const mid = (Math.min(...zs) + Math.max(...zs)) / 2, half = (Math.max(...zs) - Math.min(...zs)) / 2;
+  const spread = rand(1, 1.4), room = 2.8 - half * spread, shift = rand(-room, room);
+  for (const d of list) {
+    const b = d.body, p = d.mesh.position;
+    placeBodyAtMesh(d);
+    const T = (Math.abs(p.x) - edge) / vx; // instant où le dé survole le bord du plateau
+    const vy = (2.4 - p.y + 0.5 * -CONFIG.gravity * T * T) / T;
+    const z = (p.z - mid) * spread + shift + rand(-0.15, 0.15); // où il va, en travers du plateau
+    b.velocity.set(dir * vx, vy, (z - p.z) / (T + 0.25));
+    b.angularVelocity.set(rand(-25, 25), rand(-15, 15), rand(-25, 25));
+    b.linearDamping = 0; // vol exact jusqu’au plateau : freiné, le dé tomberait court
+    b.collisionFilterMask = side === 0 ? MASK_ENTER_R : MASK_ENTER_L;
+    d.entering = side === 0 ? 'R' : 'L';
+    d.cockedTime = 0;
+    b.wakeUp();
+    setInWorld(d, true);
+    d.physics = false; // l’image attend le résultat du calcul, hors écran
+  }
+}
+// Le dé qui arrive est entièrement passé derrière le mur invisible de son côté : ce mur le retient désormais
+function hasEntered(d) {
+  const b = d.body, { halfW } = CONFIG.play;
+  b.updateAABB();
+  return d.entering === 'R' ? b.aabb.upperBound.x < halfW : b.aabb.lowerBound.x > -halfW;
+}
+function enterBoard(d) {
+  d.body.collisionFilterMask = MASK_ALL;
+  d.body.linearDamping = DIE_DAMPING;
+  d.entering = null;
+}
 // Tirage d’une face selon ses chances sur 100 (du 1 au 6)
 function drawFace(w) {
   let r = Math.random() * 100;
@@ -69,10 +100,12 @@ function drawFace(w) {
 }
 // Calcul du lancer : on enregistre la position des dés à chaque pas, et les chocs pour les rejouer en sons.
 // Le calcul est découpé en tranches de quelques millisecondes pour ne pas figer l’image (téléphones lents).
+// `lost` : nombre de dés tombés à côté du plateau, ou ramenés d’un coup sur le plateau faute d’y être arrivés
 const SIM_STEP = 1 / 120;
 export let sim = null;
 async function simulateThrow(list) {
-  const job = { list, stableTime: 0, elapsed: 0, nudges: 0, flicks: 0 }, frames = [], t0 = performance.now();
+  const job = { list, stableTime: 0, elapsed: 0, nudges: 0, flicks: 0, lost: 0 }, frames = [], t0 = performance.now();
+  const edgeX = CONFIG.board.w / 2, edgeZ = CONFIG.board.d / 2, off = new Set();
   sim = { time: 0, sounds: [] };
   for (const d of list) d.lastSound = -1;
   let done = false, slice = performance.now(), work = 0;
@@ -85,13 +118,15 @@ async function simulateThrow(list) {
     list.forEach((d, i) => {
       const p = d.body.position, q = d.body.quaternion;
       f[i * 7] = p.x; f[i * 7 + 1] = p.y; f[i * 7 + 2] = p.z; f[i * 7 + 3] = q.x; f[i * 7 + 4] = q.y; f[i * 7 + 5] = q.z; f[i * 7 + 6] = q.w;
+      // à hauteur du plateau, mais à côté : le dé serait vu flottant au-dessus de la table
+      if (p.y < 0.9 && (Math.abs(p.x) > edgeX || Math.abs(p.z) > edgeZ)) off.add(d);
     });
     frames.push(f);
   }
   const sounds = sim.sounds;
   sim = null;
   work += performance.now() - slice;
-  return { frames, sounds, work, wait: performance.now() - t0 };
+  return { frames, sounds, work, wait: performance.now() - t0, lost: Math.max(off.size, job.lost) };
 }
 export function updateReplay(dt) {
   const job = replayJob;
@@ -129,23 +164,25 @@ function flick(d) {
   b.velocity.set(-b.position.x * 0.4 + rand(-1, 1), rand(5.5, 7.5), -b.position.z * 0.4 + rand(-1, 1));
   b.angularVelocity.set(rand(-15, 15), rand(-15, 15), rand(-15, 15));
 }
-function nudge(d) {
+// Dé resté au bord du plateau, à cheval sur le mur invisible qu’il franchissait : il est bien sur le plateau
+const atEdge = (d) => d.entering && Math.abs(d.body.position.x) < CONFIG.play.halfW - 0.2 && d.body.position.y < 1.2;
+// Dé jamais arrivé ou sorti du plateau : ramené d’un coup au milieu (le lancer est alors recalculé, voir throwDice)
+function nudge(job, d) {
   const b = d.body;
-  if (d.entering || outOfPlay(d)) {
+  if ((d.entering && !atEdge(d)) || outOfPlay(d)) {
+    job.lost++;
     b.wakeUp();
     b.position.set(rand(-3, 3), 3.5, rand(-2, 2));
     b.velocity.set(rand(-4, 4), -2, rand(-3, 3));
-    b.collisionFilterMask = MASK_ALL; d.entering = null;
+    enterBoard(d);
     b.angularVelocity.set(rand(-12, 12), rand(-12, 12), rand(-12, 12));
   } else flick(d);
 }
 // Un pas de surveillance du lancer en cours de calcul : vrai quand tous les dés reposent à plat sur le plateau
 function settleStep(job, dt) {
   job.elapsed += dt;
-  const { halfW } = CONFIG.play;
   for (const d of job.list) {
-    if (d.entering === 'R' && d.body.position.x < halfW - 0.95) { d.body.collisionFilterMask = MASK_ALL; d.entering = null; }
-    else if (d.entering === 'L' && d.body.position.x > -halfW + 0.95) { d.body.collisionFilterMask = MASK_ALL; d.entering = null; }
+    if (d.entering && hasEntered(d)) enterBoard(d);
     // un dé cassé qui ne bouge presque plus reçoit sa pichenette tout de suite, sans attendre que les autres s’arrêtent
     // (même arrêté au bord, avant d’avoir fini d’entrer : la pichenette le pousse vers le centre)
     const slow = d.body.velocity.lengthSquared() < 0.5 && d.body.angularVelocity.lengthSquared() < 1.5;
@@ -160,10 +197,10 @@ function settleStep(job, dt) {
   job.stableTime = moving ? 0 : job.stableTime + dt;
   if (job.stableTime < 0.22 && job.elapsed < 7) return false;
   // dé sorti, encore « en vol », ou cassé (appuyé sur un autre) → petite pichenette
-  const bad = job.list.filter((d) => d.entering || outOfPlay(d) || d.body.position.y > 0.9 || topFace(d.body.quaternion).dot < 0.94);
+  const bad = job.list.filter((d) => (d.entering && !atEdge(d)) || outOfPlay(d) || d.body.position.y > 0.9 || topFace(d.body.quaternion).dot < 0.94);
   if (bad.length && job.nudges < 4) {
     job.nudges++; job.stableTime = 0; job.elapsed = Math.min(job.elapsed, 4);
-    bad.forEach(nudge);
+    bad.forEach((d) => nudge(job, d));
     return false;
   }
   for (const d of job.list) { d.body.velocity.setZero(); d.body.angularVelocity.setZero(); d.body.sleep(); }

@@ -13,11 +13,12 @@ world.addContactMaterial(new CANNON.ContactMaterial(mDice, mFloor, { friction: 0
 world.addContactMaterial(new CANNON.ContactMaterial(mDice, mDice, { friction: 0.12, restitution: 0.42 }));
 world.addContactMaterial(new CANNON.ContactMaterial(mDice, mWall, { friction: 0.05, restitution: 0.5 }));
 
-// Groupes de collision : un dé qui entre par la droite ignore le mur droit tant qu’il ne l’a pas franchi.
-export const G = { DICE: 1, FLOOR: 2, WALL: 4, WALL_R: 8, WALL_L: 16 };
-export const MASK_ALL = G.DICE | G.FLOOR | G.WALL | G.WALL_R | G.WALL_L;
-export const MASK_ENTER_R = MASK_ALL & ~G.WALL_R;
-export const MASK_ENTER_L = MASK_ALL & ~G.WALL_L;
+// Groupes de collision : un dé qui entre par la droite ignore le mur droit tant qu’il ne l’a pas franchi,
+// et le plafond, dont il pourrait heurter la tranche en arrivant de haut
+export const G = { DICE: 1, FLOOR: 2, WALL: 4, WALL_R: 8, WALL_L: 16, CEIL: 32 };
+export const MASK_ALL = G.DICE | G.FLOOR | G.WALL | G.WALL_R | G.WALL_L | G.CEIL;
+export const MASK_ENTER_R = MASK_ALL & ~G.WALL_R & ~G.CEIL;
+export const MASK_ENTER_L = MASK_ALL & ~G.WALL_L & ~G.CEIL;
 
 const floorBody = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Plane(), material: mFloor, collisionFilterGroup: G.FLOOR, collisionFilterMask: G.DICE });
 floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
@@ -33,5 +34,9 @@ function addWall(hx, hy, hz, x, y, z, group) {
   addWall(0.5, 8, halfD + 1, -halfW - 0.5, 7, 0, G.WALL_L);
   addWall(halfW + 1, 8, 0.5, 0, 7, halfD + 0.5, G.WALL);
   addWall(halfW + 1, 8, 0.5, 0, 7, -halfD - 0.5, G.WALL);
-  addWall(halfW + 1, 0.5, halfD + 1, 0, 9.5, 0, G.WALL); // plafond
+  addWall(halfW + 1, 0.5, halfD + 1, 0, 9.5, 0, G.CEIL); // plafond
+  // muret toujours là, sous les murs qui s’ouvrent : les dés qui arrivent passent au-dessus (à hauteur de main),
+  // celui qui rebondit en arrière au ras du plateau avant d’avoir fini d’entrer est retenu
+  addWall(0.5, 1, halfD + 1, halfW + 0.5, 0, 0, G.WALL);
+  addWall(0.5, 1, halfD + 1, -halfW - 0.5, 0, 0, G.WALL);
 }

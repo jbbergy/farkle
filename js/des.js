@@ -45,6 +45,7 @@ export const randomQuat = () => new THREE.Quaternion().setFromEuler(new THREE.Eu
 // `dice` est le jeu du joueur dont c’est le tour ; l’autre jeu attend sur le tapis de son propriétaire.
 export const dice = [], allDice = [], diceSets = [[], []];
 const TAVERN_LOOK = { body: '#a8673a', pip: '#f3e6c4' };
+export const DIE_DAMPING = 0.06; // freinage d’un dé dans l’air (retiré pendant son vol vers le plateau, voir throwDice)
 let dieFaces = null;   // faces procédurales, gardées pour fabriquer celles des dés spéciaux
 const dieMaps = {};    // textures du dé ordinaire
 export function createDice() {
@@ -78,7 +79,7 @@ export function createDice() {
     scene.add(mesh);
     const body = new CANNON.Body({
       mass: 1, shape: new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)), material: mDice,
-      linearDamping: 0.06, angularDamping: 0.09, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.25,
+      linearDamping: DIE_DAMPING, angularDamping: 0.09, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.25,
       collisionFilterGroup: G.DICE, collisionFilterMask: MASK_ALL,
     });
     const d = { id: i, owner, mesh, body, mat, tint, base, kind: null, state: 'table', slot: -1, side: owner, value: 1, rest: null, inWorld: false, physics: false, entering: null, tween: null, glow: 0, heat: 0, lastSound: 0 };
@@ -146,6 +147,7 @@ export function placeBodyAtMesh(d) {
   d.body.quaternion.copy(d.mesh.quaternion);
   d.body.velocity.setZero(); d.body.angularVelocity.setZero();
   d.body.collisionFilterMask = MASK_ALL;
+  d.body.linearDamping = DIE_DAMPING;
   d.physics = true;
 }
 export function storeRest(d) {
@@ -208,9 +210,10 @@ export function moveDie(d, toPos, toQuat, { duration = 450, arc = 1.2 } = {}) {
 }
 
 // Position de départ d’un lancer, hors écran (+x pour le joueur, −x pour le Tavernier :
-// droite/gauche de l’écran sur ordinateur, bas/haut en portrait)
+// droite/gauche de l’écran sur ordinateur, bas/haut en portrait). Les dés y sont assez espacés pour ne pas se toucher,
+// quelle que soit leur orientation : sinon ils s’écarteraient d’un coup au départ du lancer, dans n’importe quelle direction.
 export function spawnPos(side, i) {
   const s = side === 0 ? 1 : -1;
   const col = i % 2, row = (i / 2) | 0;
-  return new THREE.Vector3(s * (spawnXs[side] + col * 1.3), 3.2 + rand(0, 0.8), (row - 1) * 1.25 + rand(-0.15, 0.15));
+  return new THREE.Vector3(s * (spawnXs[side] + col * 2.4 + rand(-0.25, 0.25)), 3.2 + rand(0, 0.8), (row - 1) * 1.8 + rand(-0.05, 0.05));
 }
