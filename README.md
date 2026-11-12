@@ -4,6 +4,8 @@ Le jeu de dés Farkle dans une taverne médiévale, contre le Tavernier. La page
 `css/style.css` et le code en modules JavaScript du dossier `js/` (voir « Organisation du code ») : Three.js pour la 3D,
 cannon-es pour la physique des dés, et du JavaScript sans framework ni étape de construction pour le reste.
 La musique, l’ambiance, les bruitages et les voix des clients ont été générés avec ElevenLabs (dossier `audio/`).
+Trois morceaux de taverne (`MUSIC` dans `js/sons.js`) : le premier joue au menu, puis chaque partie en tire un au hasard
+(`shuffleMusic`), en fondu ; un morceau qui ne se charge pas laisse la place au premier.
 
 En ligne : https://farkle.jibhey.fr
 

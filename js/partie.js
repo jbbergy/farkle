@@ -18,7 +18,7 @@ import { carnet, noteAces, noteParts, noteResult, saveCarnet, unlock } from './c
 import { clearMatch, saveMatch, setPendingMatch } from './sauvegarde.js';
 import { aiTurn } from './ia.js';
 import { configurerFin, envoyerEtat, finManche, geste, tourDistant } from './en-ligne.js';
-import { audio, sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
+import { audio, shuffleMusic, sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
 import { buzzBang, buzzFarkle, buzzVictory } from './vibreur.js';
 import { commentRoll, loadOppVoices, nag, playerActed, react, talk } from './voix.js';
 import { frameDice, unframe } from './cadrage.js';
@@ -137,6 +137,7 @@ export function startGame(resume = null, online = null) {
   }
   if (!online) setPendingMatch(null);
   game.token++;
+  shuffleMusic(); // chaque partie tire sa musique au hasard
   cancelReplay();
   shownScores[0] = game.scores[0]; shownScores[1] = game.scores[1];
   el.scores.forEach((s, i) => { s.textContent = game.scores[i]; }); // l’affichage animé ne bouge qu’au prochain changement de score

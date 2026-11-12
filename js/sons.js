@@ -19,7 +19,8 @@ const SOUNDS = {
   // événements de la table (voir js/evenements.js)
   acclamation: ['des_brulants.mp3'], coq: ['evt_coq.mp3'], grondement: ['evt_grondement.mp3'], brasier: ['evt_brasier.mp3'],
 };
-const MUSIC_URL = 'audio/musique_cromorne.mp3';
+// Les morceaux de la taverne : le premier joue au menu, puis chaque partie en tire un au hasard (voir shuffleMusic)
+const MUSIC = ['audio/musique_cromorne.mp3', 'audio/musique_vielle.mp3', 'audio/musique_chalemie.mp3'];
 const LEVELS = { music: 0.25, ambience: 0.8, sfx: 0.8, voices: 1 };
 export const audio = { ctx: null, master: null, bus: {}, noise: null, buffers: {}, last: {}, music: null, ambience: null, on: { music: true, ambience: true, sfx: true, voices: true } };
 try { Object.assign(audio.on, JSON.parse(localStorage.getItem('farkle.son')) || {}); } catch { /* stockage indisponible */ }
@@ -120,30 +121,51 @@ function startAmbience() {
   audio.ambience = src;
 }
 // La musique est décodée et jouée comme les autres sons. Un lecteur <audio> branché sur Web Audio restait muet
-// sur certains appareils, sans erreur visible. Elle démarre dès qu’elle est chargée, en fondu.
-let musicLoad = null;
+// sur certains appareils, sans erreur visible. Elle démarre dès qu’elle est chargée, en fondu (sur son propre gain :
+// celui de la piste musique sert à l’effacer sous les voix, voir duckMusic). Un seul morceau est gardé décodé
+// à la fois : deux minutes de musique décodée pèsent une quarantaine de Mo, c’est beaucoup sur un téléphone.
+let musicPick = 0, musicLoaded = -1, musicLoad = null;
 function startMusic() {
   if (!audio.ctx || !audio.on.music || document.hidden || audio.music) return;
-  if (!audio.buffers.musique) {
-    musicLoad ||= loadAudio(MUSIC_URL).then((buf) => {
-      if (!buf) { musicLoad = null; return; } // échec : on réessaiera au prochain geste
-      audio.buffers.musique = buf;
-      startMusic();
+  if (musicLoaded !== musicPick) {
+    const want = musicPick;
+    musicLoad ||= loadAudio(MUSIC[want]).then((buf) => {
+      musicLoad = null;
+      // échec (hors connexion, morceau jamais gardé) : le premier morceau à la place, sinon on réessaiera au prochain geste
+      if (!buf) { if (want === musicPick && want !== 0) { musicPick = 0; startMusic(); } return; }
+      if (want === musicPick) { audio.buffers.musique = buf; musicLoaded = want; }
+      startMusic(); // (un autre morceau a pu être tiré entre-temps : c’est lui qu’on charge alors)
     });
     return;
   }
   const { ctx } = audio, t = ctx.currentTime;
-  const src = ctx.createBufferSource();
+  const src = ctx.createBufferSource(), fade = ctx.createGain();
   src.buffer = audio.buffers.musique; src.loop = true;
-  src.connect(audio.bus.music);
-  const g = audio.bus.music.gain;
-  g.cancelScheduledValues(t); g.setValueAtTime(0, t); g.linearRampToValueAtTime(LEVELS.music, t + 5);
+  src.connect(fade); fade.connect(audio.bus.music);
+  fade.gain.setValueAtTime(0, t); fade.gain.linearRampToValueAtTime(1, t + 5);
   src.start();
+  src.fade = fade;
   audio.music = src;
 }
 function stopMusic() {
   if (!audio.music) return;
-  audio.music.stop(); audio.music.disconnect(); audio.music = null;
+  audio.music.stop(); audio.music.disconnect(); audio.music.fade.disconnect(); audio.music = null;
+}
+// En début de partie, la musique est tirée au hasard parmi les morceaux. Le même peut revenir : il continue alors
+// sans s’interrompre ; sinon l’ancien s’efface en 2 s pendant que le nouveau se charge, puis entre en fondu
+export function shuffleMusic() {
+  const next = (Math.random() * MUSIC.length) | 0;
+  if (next === musicPick) return;
+  musicPick = next;
+  delete audio.buffers.musique; musicLoaded = -1;
+  const old = audio.music;
+  if (!old) return; // rien ne joue (musique coupée, onglet caché) : le bon morceau partira au prochain startMusic
+  audio.music = null;
+  const t = audio.ctx.currentTime, g = old.fade.gain;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 2);
+  old.stop(t + 2.05);
+  old.onended = () => { old.disconnect(); old.fade.disconnect(); };
+  startMusic();
 }
 // Pendant le dernier tour, la salle retient son souffle : l’ambiance baisse (voir hushRoom)
 let hush = 1;
