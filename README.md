@@ -100,7 +100,7 @@ Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouve
   quatre, cinq ou six dés pareils, la table qui tremble, puis la sciure qui tombe des poutres, puis une éclipse rouge.
   Plus de trois as font toujours s’écrier la mère Ludmila (`quatre_as`, `cinq_as`, `six_as`, même sans ces événements).
   Les dés brûlants embrasent le plateau. Une fois par partie au plus, un cafard ou un cloporte traverse le plateau
-  (jamais contre le Tavernier) ; l’adversaire le signale (moment `insecte`) et l’écraser rapporte 10 groschens,
+  (jamais contre le Tavernier) ; l’adversaire le signale (moment `insecte`) et l’écraser rapporte 15 groschens (cafard, plus rapide) ou 10 (cloporte),
   avec le « Merci ! » du Tavernier crié de loin. Le réglage « Événements de la table » (`farkle.evenements`) coupe tout cela.
   En console : `FarkleDebug.event('bougies' | 'aube' | 'tremblement' | 'hot', n)` et `FarkleDebug.bug('cafard' | 'cloporte')`.
 - Sur téléphone, les dés vibrent à leurs chocs, plus longuement au Farkle, deux fois à la victoire (`js/vibreur.js`).

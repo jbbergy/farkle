@@ -149,9 +149,10 @@ export function startGame(resume = null, online = null) {
   armBug(); // l’insecte passera peut-être pendant la partie
   if (online?.etat) restoreTurn(online.etat);
   else beginTurn(resume ? resume.current : game.starter);
-  // l’adversaire salue, une fois ses répliques chargées (toujours à la reprise : c’est sa seule façon de dire qu’il est là)
-  const tk = game.token;
-  loadOppVoices().then(() => { if (tk === game.token) react('debut', resume ? 1 : 0.8, 400); });
+  // l’adversaire salue à chaque partie, nouvelle ou reprise, dès que ses saluts sont chargés
+  // (sauf si quelqu’un a déjà réagi à un premier lancer : un bonjour arriverait trop tard)
+  const tk = game.token, started = performance.now();
+  loadOppVoices().then(() => { if (tk === game.token && talk.lastReaction < started) react('debut', 1, 400); });
 }
 // Partie à deux, page rechargée : le tour reprend là où l’instantané l’a laissé (voir etatPartie, dans en-ligne.js).
 // Les dés encore sur le plateau y sont simplement reposés : seule leur valeur compte.

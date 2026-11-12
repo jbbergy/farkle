@@ -80,8 +80,9 @@ for (const ev of UNLOCK_EVENTS) addEventListener(ev, unlockAudio, true);
 // Un petit serveur local (python -m http.server) refuse des connexions si on lui en ouvre trop d’un coup.
 let loadSlots = 4;
 const loadWaiters = [];
-export async function loadAudio(url) {
-  if (loadSlots > 0) loadSlots--; else await new Promise((r) => loadWaiters.push(r));
+// `urgent` : passe devant les fichiers qui attendent leur tour (le salut de l’adversaire, au début de la partie)
+export async function loadAudio(url, urgent = false) {
+  if (loadSlots > 0) loadSlots--; else await new Promise((r) => (urgent ? loadWaiters.unshift(r) : loadWaiters.push(r)));
   try {
     for (let attempt = 0; attempt < 4; attempt++) {
       try {

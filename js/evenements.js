@@ -165,8 +165,9 @@ export function hotEvent(list) {
 }
 
 // ─── L’insecte : un cafard ou un cloporte traverse le plateau, au plus une fois par partie (jamais chez le Tavernier,
-// sa taverne est propre). L’écraser rapporte 10 groschens, que le Tavernier donne en criant merci de loin.
-export const BUG_REWARD = 10;
+// sa taverne est propre). L’écraser rapporte des groschens, que le Tavernier donne en criant merci de loin :
+// davantage pour le cafard, plus rapide, donc plus dur à attraper.
+export const BUG_REWARD = { cafard: 15, cloporte: 10 };
 let bug = null;
 const bugPlan = { wait: 0 };
 // Au début (ou à la reprise) d’une partie : l’insecte viendra peut-être, après 25 s à 2 min 30 de jeu
@@ -346,11 +347,12 @@ export function catchBug(clientX, clientY) {
   if (Math.hypot(clientX - sx, clientY - sy) > radius) return false;
   bug.caught = 0.001;
   sfxSquash();
-  wallet.purse += BUG_REWARD; saveWallet();
+  const reward = BUG_REWARD[bug.type];
+  wallet.purse += reward; saveWallet();
   const tk = game.token;
   setTimeout(() => {
     if (tk !== game.token) return;
-    toast(`+${BUG_REWARD} groschens`, 'Le Tavernier te remercie', 'bank', 1800);
+    toast(`+${reward} groschens`, 'Le Tavernier te remercie', 'bank', 1800);
     sfxCoins(0.6);
   }, 250);
   bug.said = true;
