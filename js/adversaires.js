@@ -1,13 +1,29 @@
-// Les quatre adversaires : façon de jouer, mise, sac de dés spéciaux, couleur des dés et répliques écrites.
+// Les cinq adversaires : façon de jouer, mise, sac de dés spéciaux, couleur des dés et répliques écrites.
 
 import { RULES } from './config.js';
 import { DIE_KINDS } from './des-speciaux.js';
 
 // risk : multiplie les seuils où il garde ses points (plus haut : il tente davantage) ; slip : chance de mal choisir
-// ses dés ; maxStake : sa plus forte mise ; dice : les dés spéciaux qu’il peut sortir (null : toute l’échoppe) ;
+// ses dés ; whim : l’écart de son humeur d’un lancer à l’autre (par défaut, à peine) ; maxStake : sa plus forte mise ; dice : les dés spéciaux qu’il peut sortir (null : toute l’échoppe) ;
 // look : la couleur de ses dés ordinaires. Les répliques du menu et de la fin de partie sont les siennes
 // (beaten : battu ; gaveUp : il abandonne son dernier tour, perdu d’avance ; wins : il gagne, avec ou sans mise).
 export const OPPONENTS = {
+  chevalier: {
+    name: 'sire Radek', Name: 'Sire Radek', full: 'sire Radek, chevalier errant', short: 'Radek', row: '<span class="art">Sire </span>Radek', she: false,
+    tag: 'Imprévisible', risk: 1.2, whim: [0.3, 2.8], slip: 0.45, maxStake: 10, dice: ['pair', 'bancal', 'petits', 'colporteur'], look: { body: '#2f6b66', pip: '#f2e4bf' },
+    hello: 'Bonsoir ! Je suis sire Radek, chevalier errant. Errant parce que je me perds beaucoup. On joue ?',
+    resume: 'Te revoilà ! Moi aussi, d’ailleurs : je me suis perdu entre la table et le comptoir.',
+    win: 'Bravo ! Tu m’expliqueras comment tu as fait ? Lentement.',
+    loss: 'J’ai gagné ? Merci pour les pièces ! Je vais m’acheter un cheval. Ou un chapeau.',
+    honorWin: 'Tu as gagné l’honneur ! C’est lourd, l’honneur ? Je n’en ai jamais porté.',
+    honorLoss: 'J’ai gagné l’honneur ! Je le range où, l’honneur ?',
+    rich: 'Tout cet argent ! Avec ça, tu pourrais t’acheter un château. Ou une épée qui coupe.',
+    credit: 'Le Tavernier t’a donné des pièces ? Moi, il ne me donne que des conseils. Et je les perds.',
+    stakes: { 0: 'Pour l’honneur ? D’accord ! C’est combien, l’honneur ?', 10: 'Dix groschens ! C’est tout ce que mon seigneur m’a donné pour la quête. Ou pour le pain, je ne sais plus.' },
+    lengths: ['Le temps d’une chope ? Ça tombe bien, j’en ai une.', 'Une soirée ! Mon seigneur m’attend demain. Ou hier, je ne sais plus.', 'Jusqu’à l’aube ? C’est quand, déjà, l’aube ? Après la nuit ?'],
+    gaveUp: 'Sire Radek compte sur ses doigts, recompte, repose les dés sans les lancer et te serre la main.',
+    beaten: 'Sire Radek te serre la main avec émotion, puis serre aussi celle du Tavernier, au cas où.', wins: ['Il range tes pièces dans sa botte gauche, puis dans la droite, pour l’équilibre.', 'Il lève les bras au ciel et renverse sa chope sur son voisin.'],
+  },
   palefrenier: {
     name: 'Kuba', Name: 'Kuba', full: 'Kuba, le palefrenier', short: 'Kuba', row: 'Kuba', she: false,
     tag: 'Fougueux', risk: 1.8, slip: 0.3, maxStake: 25, dice: ['fele', 'bancal', 'pair', 'soufre'], look: { body: '#7a5434', pip: '#f0dfb6' },
@@ -88,7 +104,7 @@ const escapeHtml = (t) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 export function setFriend(name) {
   Object.assign(OPPONENTS.ami, { name, Name: name, full: name, short: name, row: escapeHtml(name) });
 }
-export const OPP_ORDER = ['palefrenier', 'vieux', 'servante', 'tavernier'];
+export const OPP_ORDER = ['chevalier', 'palefrenier', 'vieux', 'servante', 'tavernier'];
 export const OPP = () => OPPONENTS[RULES.opponent];
 export const il = () => (OPP().she ? 'Elle' : 'Il');
 // L’adversaire sort quelques dés spéciaux de son sac, d’autant plus que la mise est forte

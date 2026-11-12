@@ -16,7 +16,7 @@ export const CONFIG = {
 export const RULES = { target: 4000, stake: 25, opponent: 'tavernier' };
 // (Kuba était « l’ivrogne » avant d’être palefrenier : identifiant « ivrogne »)
 export const oppId = (id) => (id === 'ivrogne' ? 'palefrenier' : id);
-try { const saved = oppId(localStorage.getItem('farkle.adversaire')); if (['palefrenier', 'vieux', 'servante', 'tavernier'].includes(saved)) RULES.opponent = saved; } catch { /* le Tavernier */ }
+try { const saved = oppId(localStorage.getItem('farkle.adversaire')); if (['chevalier', 'palefrenier', 'vieux', 'servante', 'tavernier'].includes(saved)) RULES.opponent = saved; } catch { /* le Tavernier */ }
 
 // Textures personnalisées : laisse `null` pour les textures procédurales.
 // Chemins relatifs à la page (index.html), ex. 'textures/chene_color.jpg'.

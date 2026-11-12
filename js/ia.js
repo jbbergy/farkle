@@ -33,7 +33,8 @@ function aiShouldBank(turnAfter, remaining) {
   let th = [0, 250, 300, 400, 700, 1500][remaining];
   if (opp >= target * 0.85 || opp - me > target * 0.35) th *= 1.6;      // en retard : il prend des risques
   else if (me - opp > target * 0.35) th *= 0.75;                        // en avance : il assure
-  th *= OPP().risk * rand(0.88, 1.15);                                  // son caractère : prudent ou casse-cou
+  const [lo, hi] = OPP().whim || [0.88, 1.15];                          // son humeur du moment (sire Radek : n’importe laquelle)
+  th *= OPP().risk * rand(lo, hi);                                      // son caractère : prudent ou casse-cou
   return turnAfter >= th;
 }
 // Au Farkle, aucun retard n’est tout à fait impossible à rattraper (les dés brûlants relancent le tour sans fin),
@@ -42,6 +43,8 @@ function aiShouldBank(turnAfter, remaining) {
 export const HOPELESS = 3000;
 export async function aiTurn() {
   const tk = game.token;
+  // il commence la partie : il attend, lui aussi, que les voix soient chargées (voir waitVoices dans partie.js)
+  if (game.waitVoices) { updateUI(); await game.voicesReady; if (tk !== game.token) return; }
   if (game.finalFrom !== null && game.scores[0] - game.scores[1] >= HOPELESS) {
     game.aiStatus = `${CONFIG.ai} regarde les scores…`;
     updateUI();
@@ -54,6 +57,7 @@ export async function aiTurn() {
   if (game.finalFrom !== null) {
     toast(`${CONFIG.ai} joue son dernier tour`, `${il()} doit marquer plus de ${game.scores[0] - game.scores[1]} points`, 'hot', 2200);
     sfxHot();
+    react('rattrapage', 1, 300);
     await sleep(1000);
   } else toast(game.turns === 1 ? `${CONFIG.ai} commence` : `${CONFIG.ai} joue`, '', 'info', 1100);
   await sleep(1300);

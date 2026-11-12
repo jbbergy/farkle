@@ -7,33 +7,42 @@ import { enumerateSubsets } from './regles.js';
 import { game } from './partie.js';
 import { audio, duckMusic, loadAudio } from './sons.js';
 
-export const talk = { buffers: {}, bags: {}, current: null, busyUntil: 0, lastReaction: 0, nextAnecdote: 0, ready: null, oppLoaded: null };
+// crowd : les réactions des clients chargées ; oppAll : toutes les répliques de l’adversaire du moment (chargées ou en échec) ;
+// loading : voix demandées et arrivées, pour la progression affichée avant le premier lancer (voir waitVoices dans partie.js)
+export const talk = { buffers: {}, bags: {}, current: null, busyUntil: 0, lastReaction: 0, nextAnecdote: 0, ready: null, oppLoaded: null,
+  crowd: Promise.resolve(), oppAll: Promise.resolve(), loading: { done: 0, total: 0, from: 0 } };
+// Charge une voix en la comptant : arrivée ou non (fichier absent, réseau coupé), elle fait avancer la progression
+function loadVoice(id, urgent = false) {
+  talk.loading.total++;
+  return loadAudio(`audio/voix/${id}.mp3`, urgent).finally(() => { talk.loading.done++; });
+}
 
 // Les réactions sont chargées d’avance (elles doivent partir tout de suite) ; les anecdotes, longues,
 // seulement au moment de les dire, puis oubliées : moins de mémoire sur téléphone (voir playAnecdote)
 export async function loadVoices() {
   const ids = Object.entries(TALK).filter(([cat]) => cat !== 'anecdote').flatMap(([, lines]) => lines.map((l) => l[0]));
   await Promise.all(ids.map(async (id) => {
-    const buf = await loadAudio(`audio/voix/${id}.mp3`); // fichier absent : la réplique ne sera simplement pas dite
+    const buf = await loadVoice(id); // fichier absent : la réplique ne sera simplement pas dite
     if (buf) talk.buffers[id] = buf;
   }));
 }
 // Les répliques de l’adversaire du moment, chargées au début de la partie ; celles du précédent sont oubliées.
 // Une réplique qui n’a pas pu être chargée est retentée à la partie suivante ou à la reprise.
 // Ses saluts passent devant tous les sons encore à charger : la promesse est tenue dès qu’ils sont prêts
-// (il salue aussitôt, voir startGame), ses autres répliques arrivent ensuite.
+// (il salue aussitôt, voir startGame), ses autres répliques arrivent ensuite (talk.oppAll, posée tout de suite).
 export async function loadOppVoices() {
   const opp = RULES.opponent;
-  if (!audio.ctx) return;
+  if (!audio.ctx) { talk.oppAll = Promise.resolve(); return; }
   if (talk.oppLoaded !== opp && talk.oppLoaded && OPP_TALK[talk.oppLoaded]) for (const m in OPP_TALK[talk.oppLoaded]) for (const [id] of oppLines(talk.oppLoaded, m)) delete talk.buffers[id];
   talk.oppLoaded = opp;
   const load = (lines, urgent) => Promise.all(lines.filter(([id]) => !talk.buffers[id]).map(async ([id]) => {
-    const buf = await loadAudio(`audio/voix/${id}.mp3`, urgent);
+    const buf = await loadVoice(id, urgent);
     if (buf && talk.oppLoaded === opp) talk.buffers[id] = buf;
   }));
   const moments = Object.keys(OPP_TALK[opp] || {});
-  await load(oppLines(opp, 'debut'), true);
-  load(moments.filter((m) => m !== 'debut').flatMap((m) => oppLines(opp, m)), false);
+  const greet = load(oppLines(opp, 'debut'), true);
+  talk.oppAll = Promise.all([greet, load(moments.filter((m) => m !== 'debut').flatMap((m) => oppLines(opp, m)), false)]);
+  await greet;
 }
 // tirage sans remise : toutes les répliques d’une catégorie passent avant qu’une revienne
 // (les clients qui jouent contre toi ne réagissent pas en spectateurs ; les répliques absentes sont sautées)
@@ -131,11 +140,11 @@ export function stopTalk() {
   talk.current = null;
   talk.busyUntil = 0;
 }
-// Réaction d’un client à un coup. Le salut de l’adversaire au début de la partie, un Farkle, un abandon, l’insecte
-// et la fin de la partie font toujours réagir quelqu’un ; les autres coups seulement de temps en temps (`chance`),
+// Réaction d’un client à un coup. Le salut de l’adversaire au début de la partie, un Farkle, un abandon, l’insecte,
+// le début d’un dernier tour et la fin de la partie font toujours réagir quelqu’un ; les autres coups seulement de temps en temps (`chance`),
 // jamais deux fois de suite. Une réaction coupe une anecdote en cours.
 const MANY_ACES = { 4: 'quatre_as', 5: 'cinq_as', 6: 'six_as' };
-const MUST_REACT = new Set(['debut', 'farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier', 'abandon', 'insecte', ...Object.values(MANY_ACES)]);
+const MUST_REACT = new Set(['debut', 'farkle_toi', 'farkle_tavernier', 'pot_perdu_toi', 'pot_perdu_tavernier', 'victoire_toi', 'victoire_tavernier', 'abandon', 'insecte', 'rattrapage', 'dernier_tour', ...Object.values(MANY_ACES)]);
 export function react(cat, chance = 1, delay = 700, moment = OWN_MOMENT[cat]) {
   if (!audio.ctx || !audio.on.voices) return;
   const now = performance.now(), speaking = now < talk.busyUntil && talk.current && !talk.current.anecdote;
@@ -164,7 +173,7 @@ export const playerActed = () => { nag.since = performance.now(); };
 addEventListener('pointerdown', playerActed);
 addEventListener('keydown', playerActed);
 setInterval(() => {
-  if (game.online || game.current !== 0 || !['idle', 'choosing'].includes(game.phase) || document.hidden) return; // un autre joueur ne parle pas par la voix du jeu
+  if (game.online || game.waitVoices || game.current !== 0 || !['idle', 'choosing'].includes(game.phase) || document.hidden) return; // un autre joueur ne parle pas par la voix du jeu
   if (!$('rules').classList.contains('hidden') || !$('settings-panel').classList.contains('hidden')) { playerActed(); return; }
   if (nag.count >= 2 || performance.now() - nag.since < (nag.count ? 40000 : 20000)) return;
   nag.count++; playerActed();

@@ -41,7 +41,7 @@ export const FEATS = [
   { id: 'main_sure', name: 'Main sûre', desc: 'Gagner une partie sans un seul Farkle.' },
   { id: 'remontee', name: 'Retour de flamme', desc: 'Gagner après avoir eu 1500 points de retard.' },
   { id: 'fil', name: 'Sur le fil', desc: 'Gagner pendant ton dernier tour.' },
-  { id: 'tournee', name: 'Tournée générale', desc: 'Battre chacun des quatre adversaires.' },
+  { id: 'tournee', name: 'Tournée générale', desc: 'Battre chacun des cinq adversaires.' },
   { id: 'patron', name: 'Plumer le patron', desc: 'Battre le Tavernier sur une mise de 100 groschens.' },
   { id: 'bourse', name: 'Bourse pleine', desc: 'Avoir 1000 groschens en poche.' },
   { id: 'cabinet', name: 'Cabinet de curiosités', desc: 'Posséder huit sortes de dés spéciaux.' },

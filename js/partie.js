@@ -18,7 +18,7 @@ import { carnet, noteAces, noteParts, noteResult, saveCarnet, unlock } from './c
 import { clearMatch, saveMatch, setPendingMatch } from './sauvegarde.js';
 import { aiTurn } from './ia.js';
 import { configurerFin, envoyerEtat, finManche, geste, tourDistant } from './en-ligne.js';
-import { sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
+import { audio, sfxCoins, sfxDefeat, sfxFarkle, sfxHot, sfxPlace, sfxThud, sfxVictory } from './sons.js';
 import { buzzBang, buzzFarkle, buzzVictory } from './vibreur.js';
 import { commentRoll, loadOppVoices, nag, playerActed, react, talk } from './voix.js';
 import { frameDice, unframe } from './cadrage.js';
@@ -35,7 +35,9 @@ export const game = { phase: 'menu', current: 0, scores: [0, 0], turnScore: 0, t
   // trace.tales : les anecdotes déjà racontées, qui ne reviennent pas dans la même partie)
   trace: { farkles: 0, deficit: 0, tales: [] }, hotTurn: 0,
   // online : partie à deux en ligne ; bloque : le joueur ne peut pas agir (connexion perdue, gestes en cours de rattrapage)
-  online: false, bloque: false };
+  online: false, bloque: false,
+  // waitVoices : les voix de la partie se chargent encore, personne ne lance (voicesReady : la fin de cette attente)
+  waitVoices: false, voicesReady: Promise.resolve() };
 
 // ─── Règles de la maison (réglages, valables dès la partie suivante) ───
 // ouverture : il faut garder au moins 500 points en un tour pour inscrire son premier score ;
@@ -147,12 +149,29 @@ export function startGame(resume = null, online = null) {
   $('menu').classList.add('hidden'); $('gameover').classList.add('hidden'); $('hud').classList.remove('hidden');
   document.body.dataset.screen = 'game';
   armBug(); // l’insecte passera peut-être pendant la partie
+  const tk = game.token, greeted = loadOppVoices();
+  game.waitVoices = !online && !!audio.ctx && audio.on.voices;
+  game.voicesReady = game.waitVoices ? waitVoices(tk) : Promise.resolve();
   if (online?.etat) restoreTurn(online.etat);
   else beginTurn(resume ? resume.current : game.starter);
   // l’adversaire salue à chaque partie, nouvelle ou reprise, dès que ses saluts sont chargés
   // (sauf si quelqu’un a déjà réagi à un premier lancer : un bonjour arriverait trop tard)
-  const tk = game.token, started = performance.now();
-  loadOppVoices().then(() => { if (tk === game.token && talk.lastReaction < started) react('debut', 1, 400); });
+  const started = performance.now();
+  greeted.then(() => { if (tk === game.token && talk.lastReaction < started) react('debut', 1, 400); });
+}
+// Avant le premier lancer, les voix de la partie (clients et adversaire) finissent de se charger, 15 s au plus :
+// une réaction dont le fichier n’est pas encore arrivé serait sautée sans un mot. Le bouton « Lancer » attend,
+// la progression s’affiche dans le conseil (voir updateUI), et l’adversaire qui commence attend aussi (aiTurn).
+const VOICE_WAIT = 15000;
+async function waitVoices(tk) {
+  talk.loading.from = talk.loading.done;
+  const tick = setInterval(() => { if (tk === game.token) updateUI(); }, 200);
+  await Promise.race([Promise.all([talk.crowd, talk.oppAll]), sleep(VOICE_WAIT)]);
+  clearInterval(tick);
+  if (tk !== game.token) return;
+  game.waitVoices = false;
+  playerActed(); // l’attente ne compte pas dans l’impatience de l’adversaire
+  updateUI();
 }
 // Partie à deux, page rechargée : le tour reprend là où l’instantané l’a laissé (voir etatPartie, dans en-ligne.js).
 // Les dés encore sur le plateau y sont simplement reposés : seule leur valeur compte.
@@ -201,7 +220,10 @@ function beginTurn(p) {
   updateUI();
   if (game.online && p === 0) envoyerEtat();
   if (p === 1) { if (game.online) tourDistant(); else aiTurn(); }
-  else if (game.finalFrom !== null) { toast('Ton dernier tour', `Il te faut plus de ${game.scores[1] - game.scores[0]} points`, 'hot', 2200); sfxHot(); }
+  else if (game.finalFrom !== null) {
+    toast('Ton dernier tour', `Il te faut plus de ${game.scores[1] - game.scores[0]} points`, 'hot', 2200); sfxHot();
+    if (!game.online) react('dernier_tour', 1, 600); // l’adversaire, qui vient d’atteindre l’objectif, te tend les dés
+  }
   else toast(game.turns === 1 ? 'À toi de commencer' : 'À toi de jouer', '', 'info', 1100);
 }
 function endTurn() { beginTurn(1 - game.current); }
@@ -215,6 +237,7 @@ function knock(k, delay) {
 // `imposed` : les valeurs d’un lancer reçu par le réseau (voir throwDice)
 export async function rollAction(imposed = null) {
   const tk = game.token;
+  if (game.waitVoices) return null;
   if (game.phase === 'choosing') {
     const sel = selectionInfo();
     if (!sel.valid) return null;
@@ -238,7 +261,7 @@ export async function rollAction(imposed = null) {
       unlock('brulants');
       if (game.hotTurn >= 2) unlock('forge');
     }
-    react('des_brulants', 0.85, 900, game.current === 0 ? 'jaloux' : 'beau_coup');
+    react('des_brulants', 0.85, 900, game.current === 0 ? 'jaloux' : 'brulant');
     updateUI();
     await sleep(1000);
     if (tk !== game.token) return null;
@@ -323,7 +346,13 @@ export async function bankAction(fromNet = false) {
   }
   toast(`+${gained}`, who === 0 ? 'Points mis à l’abri' : `${CONFIG.ai} empoche ses points`, 'bank', 1400);
   sfxCoins();
-  if (gained >= 1000 && game.scores[who] < RULES.target) react(who === 0 ? 'grosse_mise_toi' : 'grosse_mise_tavernier', 0.75, 900);
+  // (objectif atteint ou dépassé : l’autre réagira au début de son dernier tour, ou la partie est finie)
+  if (game.scores[who] < RULES.target) {
+    const left = dice.filter((d) => d.state === 'table').length, before = game.scores[who] - gained;
+    if (who === 1 && before < game.scores[0] && game.scores[1] > game.scores[0] && !game.online) react('devant', 0.7, 900);
+    else if (gained >= 1000) react(who === 0 ? 'grosse_mise_toi' : 'grosse_mise_tavernier', 0.75, 900);
+    else if (who === 0 && gained <= 300 && left >= 3 && !game.online) react('prudent', 0.6, 900); // il garde peu, avec des dés en main
+  }
   updateUI();
   // dernier tour réussi : il a dépassé celui qui avait atteint l’objectif
   if (game.finalFrom !== null) {

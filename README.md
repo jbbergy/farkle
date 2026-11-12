@@ -68,12 +68,16 @@ puis rejoué en tournant l’image du dé pour que la face tirée selon ses chan
 
 ## Adversaires, fin de partie et règles de la maison
 
-Le menu propose quatre adversaires (`OPPONENTS` dans `js/adversaires.js`) : Kuba le palefrenier, le vieil Ota, Bětka la servante
-et le Tavernier, du plus facile au plus coriace. Chacun a sa façon de jouer (`risk`, `slip`), sa mise maximale,
+Le menu propose cinq adversaires (`OPPONENTS` dans `js/adversaires.js`) : sire Radek le chevalier errant, Kuba le palefrenier,
+le vieil Ota, Bětka la servante et le Tavernier, du plus facile au plus coriace. Chacun a sa façon de jouer (`risk`, `slip`,
+et pour sire Radek `whim`, une humeur qui change d’un lancer à l’autre), sa mise maximale,
 son sac de dés spéciaux, la couleur de ses dés et ses répliques, écrites (menu, fin de partie) et dites
 (`OPP_TALK` dans `js/repliques.js`, fichiers `audio/voix/<adversaire>_<moment>_<n>.mp3`) : début de partie, Farkle, gros tour, beau ou mauvais lancer,
-beau lancer du joueur, relance risquée, abandon, fin de partie, et impatience quand le joueur tarde (20 s, puis 40 s).
-Une réplique écrite sans fichier audio est simplement sautée. Les saluts qui laissent la main au joueur
+beau lancer du joueur, relance risquée, ses dés brûlants, quand il passe devant, quand le joueur garde peu avec trois dés ou plus en main,
+le début de son dernier tour et de celui du joueur, abandon, fin de partie, et impatience quand le joueur tarde (20 s, puis 40 s).
+Une réplique écrite sans fichier audio est simplement sautée. Avant le premier lancer de chaque partie, le jeu attend que les voix
+des clients et de l’adversaire soient chargées, 15 s au plus (`waitVoices` dans `js/partie.js`) : le bouton affiche « Patience… »
+et le conseil la progression ; l’adversaire qui commence attend aussi. Les saluts qui laissent la main au joueur
 (« les dés sont à toi », `PLAYER_STARTS`) ne sont dits que lorsque c’est lui qui commence. Les clients ne parlent du Tavernier comme
 adversaire que lorsque c’est lui qui joue (`ONLY_VS`, `ABOUT_TAVERNIER`), et un adversaire ne commente jamais
 la partie en spectateur. Le choix est gardé dans `farkle.adversaire`.
@@ -99,10 +103,10 @@ Deux règles de la maison se cochent dans les réglages (`farkle.maison`) : ouve
   la suite 1→6, l’aube qui se lève et un coq ;
   quatre, cinq ou six dés pareils, la table qui tremble, puis la sciure qui tombe des poutres, puis une éclipse rouge.
   Plus de trois as font toujours s’écrier la mère Ludmila (`quatre_as`, `cinq_as`, `six_as`, même sans ces événements).
-  Les dés brûlants embrasent le plateau. Une fois par partie au plus, un cafard ou un cloporte traverse le plateau
-  (jamais contre le Tavernier) ; l’adversaire le signale (moment `insecte`) et l’écraser rapporte 15 groschens (cafard, plus rapide) ou 10 (cloporte),
+  Les dés brûlants embrasent le plateau. Une fois par partie au plus, un cafard traverse le plateau
+  (jamais contre le Tavernier) ; l’adversaire le signale (moment `insecte`) et l’écraser rapporte 10 groschens (`BUG_REWARD`),
   avec le « Merci ! » du Tavernier crié de loin. Le réglage « Événements de la table » (`farkle.evenements`) coupe tout cela.
-  En console : `FarkleDebug.event('bougies' | 'aube' | 'tremblement' | 'hot', n)` et `FarkleDebug.bug('cafard' | 'cloporte')`.
+  En console : `FarkleDebug.event('bougies' | 'aube' | 'tremblement' | 'hot', n)` et `FarkleDebug.bug()`.
 - Sur téléphone, les dés vibrent à leurs chocs, plus longuement au Farkle, deux fois à la victoire (`js/vibreur.js`).
   Le réglage « Vibrations » (`farkle.vibrations`) n’apparaît que si le navigateur sait faire vibrer (pas sur iPhone).
 

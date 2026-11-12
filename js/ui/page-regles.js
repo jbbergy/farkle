@@ -84,7 +84,8 @@ function rulesHTML() {
     <h3>Les adversaires</h3>
     <p>Choisis contre qui tu joues dans le menu (ligne « Ton adversaire »), du plus facile au plus coriace :</p>
     <dl class="controls opponents">
-      <dt>Kuba, le palefrenier</dt><dd>fougueux comme un poulain, il tente tout et se trompe souvent de dés ; il ne mise jamais plus de 25 groschens.</dd>
+      <dt>Sire Radek, chevalier errant</dt><dd>imprévisible, il garde trois fois rien ou tente tout, et prend ses dés au petit bonheur ; il ne mise jamais plus de 10 groschens.</dd>
+      <dt>Kuba, le palefrenier</dt><dd>fougueux comme un poulain, il tente tout et se trompe souvent de dés ; 25 groschens au plus.</dd>
       <dt>Le vieil Ota</dt><dd>prudent, il garde ses points dès qu’il le peut ; 50 groschens au plus.</dd>
       <dt>Bětka, la servante</dt><dd>vive et maligne, elle sait quand s’arrêter ; 50 groschens au plus.</dd>
       <dt>Le Tavernier</dt><dd>le maître des lieux, le plus coriace ; il suit jusqu’à 100 groschens.</dd>

@@ -51,7 +51,10 @@ export function initAudio() {
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   Object.assign(audio, { ctx, master, bus, noise: nb, voiceVerb });
   startMusic(); // avant les autres sons : c’est le plus long à télécharger
-  talk.ready = loadSounds().then(loadVoices);
+  // les réactions des clients se chargent en même temps que les bruitages (talk.crowd : attendues avant le premier lancer)
+  const sounds = loadSounds();
+  talk.crowd = loadVoices();
+  talk.ready = Promise.all([sounds, talk.crowd]);
 }
 // Réponse impulsionnelle d’une petite salle en bois : bruit qui décroît vite, de plus en plus sourd vers la fin
 function roomImpulse(ctx, seconds) {

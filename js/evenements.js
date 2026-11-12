@@ -164,10 +164,9 @@ export function hotEvent(list) {
   start('hot');
 }
 
-// ─── L’insecte : un cafard ou un cloporte traverse le plateau, au plus une fois par partie (jamais chez le Tavernier,
-// sa taverne est propre). L’écraser rapporte des groschens, que le Tavernier donne en criant merci de loin :
-// davantage pour le cafard, plus rapide, donc plus dur à attraper.
-export const BUG_REWARD = { cafard: 15, cloporte: 10 };
+// ─── L’insecte : un cafard traverse le plateau, au plus une fois par partie (jamais chez le Tavernier,
+// sa taverne est propre). L’écraser rapporte des groschens, que le Tavernier donne en criant merci de loin.
+export const BUG_REWARD = 10;
 let bug = null;
 const bugPlan = { wait: 0 };
 // Au début (ou à la reprise) d’une partie : l’insecte viendra peut-être, après 25 s à 2 min 30 de jeu
@@ -176,56 +175,45 @@ export function armBug() {
   bugPlan.wait = RULES.opponent === 'tavernier' || game.online || game.trace.bug ? 0 : rand(25, 150); // à deux en ligne, chacun verrait le sien
 }
 const BUG_SCALE = 0.95;
-function makeBug(type) {
-  const roach = type === 'cafard';
+function makeBug() {
   const g = new THREE.Group();
-  const shell = new THREE.MeshStandardMaterial({ color: roach ? 0x6a3416 : 0x57534e, roughness: roach ? 0.28 : 0.55, metalness: 0.15, transparent: true });
-  const dark = new THREE.MeshStandardMaterial({ color: roach ? 0x2a140a : 0x3a3733, roughness: 0.6, transparent: true });
-  const L = roach ? 1.5 : 1.15;
-  if (roach) {
-    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), shell);
-    body.scale.set(L * 0.42, 0.16, L * 0.22); body.position.set(-0.05, 0.2, 0);
-    const pronotum = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), shell);
-    pronotum.scale.set(0.2, 0.13, 0.26); pronotum.position.set(L * 0.36, 0.2, 0);
-    // la ligne entre les deux ailes
-    const seam = new THREE.Mesh(new THREE.BoxGeometry(L * 0.7, 0.01, 0.025), dark);
-    seam.position.set(-0.12, 0.36, 0);
-    g.add(body, pronotum, seam);
-  } else {
-    // le cloporte : une carapace bombée en anneaux
-    for (let i = 0; i < 8; i++) {
-      const s = 1 - Math.pow((i - 3.5) / 4.2, 2);
-      const seg = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), shell);
-      seg.scale.set(0.085, 0.2 * s + 0.05, 0.34 * s + 0.06); // anneaux qui se chevauchent, séparés par un léger creux seg.position.set(-L * 0.42 + i * L * 0.12, 0.08, 0);
-      g.add(seg);
-    }
-  }
+  const shell = new THREE.MeshStandardMaterial({ color: 0x6a3416, roughness: 0.28, metalness: 0.15, transparent: true });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x2a140a, roughness: 0.6, transparent: true });
+  const L = 1.5;
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), shell);
+  body.scale.set(L * 0.42, 0.16, L * 0.22); body.position.set(-0.05, 0.2, 0);
+  const pronotum = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), shell);
+  pronotum.scale.set(0.2, 0.13, 0.26); pronotum.position.set(L * 0.36, 0.2, 0);
+  // la ligne entre les deux ailes
+  const seam = new THREE.Mesh(new THREE.BoxGeometry(L * 0.7, 0.01, 0.025), dark);
+  seam.position.set(-0.12, 0.36, 0);
+  g.add(body, pronotum, seam);
   const head = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), dark);
-  head.scale.set(0.1, 0.09, 0.12); head.position.set(L * (roach ? 0.53 : 0.5), 0.16, 0);
+  head.scale.set(0.1, 0.09, 0.12); head.position.set(L * 0.53, 0.16, 0);
   g.add(head);
-  // antennes : longues et souples pour le cafard, courtes pour le cloporte
+  // antennes longues et souples
   const antennae = [];
   for (const side of [-1, 1]) {
     const a = new THREE.Group();
-    a.position.set(L * (roach ? 0.58 : 0.55), 0.18, side * 0.05);
-    const len = roach ? 1.2 : 0.35;
+    a.position.set(L * 0.58, 0.18, side * 0.05);
+    const len = 1.2;
     const m = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.016, len, 5).rotateZ(-Math.PI / 2).translate(len / 2, 0, 0), dark);
     a.add(m); a.rotation.y = -side * 0.45; a.rotation.z = 0.2;
     g.add(a); antennae.push(a);
   }
-  // pattes : trois paires pour le cafard, sept pour le cloporte ; chacune pivote à sa hanche
-  const legs = [], pairs = roach ? 3 : 7;
-  for (let i = 0; i < pairs; i++) for (const side of [-1, 1]) {
+  // trois paires de pattes, chacune pivote à sa hanche
+  const legs = [];
+  for (let i = 0; i < 3; i++) for (const side of [-1, 1]) {
     const hip = new THREE.Group();
-    hip.position.set(L * (roach ? 0.25 - i * 0.24 : 0.36 - i * 0.12), 0.14, side * (roach ? 0.18 : 0.22));
-    const len = roach ? 0.55 + i * 0.12 : 0.24;
+    hip.position.set(L * (0.25 - i * 0.24), 0.14, side * 0.18);
+    const len = 0.55 + i * 0.12;
     const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, len, 5).translate(0, -len / 2, 0), dark);
-    leg.rotation.x = side * (roach ? 1.05 : 1.15);
+    leg.rotation.x = side * 1.05;
     hip.add(leg); g.add(hip);
-    legs.push({ hip, side, phase: (i + (side > 0 ? 1 : 0)) % 2 ? Math.PI : 0, base: roach ? (1 - i) * 0.5 : (3 - i) * 0.12 });
+    legs.push({ hip, side, phase: (i + (side > 0 ? 1 : 0)) % 2 ? Math.PI : 0, base: (1 - i) * 0.5 });
   }
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  // à peu près grandeur nature : un cafard fait un peu plus d’un dé, un cloporte à peine un dé
+  // à peu près grandeur nature : un peu plus d’un dé
   g.scale.setScalar(BUG_SCALE);
   const root = new THREE.Group();
   root.add(g);
@@ -263,12 +251,12 @@ function planPath() {
   const curve = new THREE.SplineCurve(best.pts);
   return curve.getSpacedPoints(Math.ceil(curve.getLength() / 0.1));
 }
-function launchBug(type = Math.random() < 0.6 ? 'cafard' : 'cloporte') {
+function launchBug() {
   bugPlan.wait = 0;
   game.trace.bug = true;
-  const mesh = makeBug(type);
+  const mesh = makeBug();
   const path = planPath();
-  bug = { mesh, path, type, dist: 0, speed: 0, pause: rand(0.4, 0.9), pauseAt: rand(0.35, 0.6), paused: false, gait: 0, caught: 0, fade: 0, said: false, t: 0 };
+  bug = { mesh, path, dist: 0, speed: 0, pause: rand(0.4, 0.9), pauseAt: rand(0.35, 0.6), paused: false, gait: 0, caught: 0, fade: 0, said: false, t: 0 };
   mesh.position.set(path[0].x, groundAt(path[0].x, path[0].y), path[0].y);
   scene.add(mesh);
 }
@@ -305,7 +293,7 @@ function updateBug(dt) {
   // il file par à-coups, s’arrête une fois au milieu en remuant les antennes, et détale si les dés arrivent
   const total = b.path.length - 1, frac = b.dist / (total * 0.1);
   const flee = game.phase === 'rolling';
-  let target = flee ? 10 : b.type === 'cafard' ? 5 : 3.2;
+  let target = flee ? 10 : 5;
   if (!b.paused && !flee && frac > b.pauseAt && b.pause > 0) b.paused = true;
   if (b.paused) { target = 0; b.pause -= dt; if (b.pause <= 0 || flee) b.paused = false; }
   else if (!flee) target *= 0.75 + 0.35 * Math.sin(b.t * 5.3) * Math.sin(b.t * 2.1);
@@ -319,8 +307,8 @@ function updateBug(dt) {
   m.position.set(x, y, z);
   m.rotation.set(0, Math.atan2(-(p1.y - p0.y), p1.x - p0.x), 0);
   m.rotateZ(Math.atan2(ahead - y, 0.3) * 0.8); // il se cabre en montant sur le plateau, pique du nez en descendant
-  b.gait += b.speed * dt * (b.type === 'cafard' ? 6 : 9);
-  for (const l of legs) l.hip.rotation.y = l.base + Math.sin(b.gait + l.phase) * (b.type === 'cafard' ? 0.45 : 0.3);
+  b.gait += b.speed * dt * 6;
+  for (const l of legs) l.hip.rotation.y = l.base + Math.sin(b.gait + l.phase) * 0.45;
   antennae.forEach((a, k) => { a.rotation.z = 0.2 + Math.sin(b.t * (b.paused ? 9 : 4) + k * 2) * (b.paused ? 0.25 : 0.1); });
   // l’adversaire le remarque dès qu’il monte sur le plateau
   if (!b.said && y > -0.05) { b.said = true; setTimeout(() => { if (!b.caught) react('insecte', 1, 0); }, 500); }
@@ -347,7 +335,7 @@ export function catchBug(clientX, clientY) {
   if (Math.hypot(clientX - sx, clientY - sy) > radius) return false;
   bug.caught = 0.001;
   sfxSquash();
-  const reward = BUG_REWARD[bug.type];
+  const reward = BUG_REWARD;
   wallet.purse += reward; saveWallet();
   const tk = game.token;
   setTimeout(() => {
@@ -390,4 +378,4 @@ export function testEvent(name, n = 6) {
   const list = dice.filter((d) => d.state === 'table');
   if (name === 'hot') hotEvent(dice); else start(name, diceCenter(list), n);
 }
-export function testBug(type) { if (bug) removeBug(); launchBug(type); return bug; }
+export function testBug() { if (bug) removeBug(); launchBug(); return bug; }

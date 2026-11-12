@@ -7,6 +7,7 @@ import { formatParts } from '../regles.js';
 import { bankBlock, canGiveUp, game, OPENING, selectionInfo, shownScores } from '../partie.js';
 import { applyLayout } from '../scene.js';
 import { sfxTick } from '../sons.js';
+import { talk } from '../voix.js';
 
 export const el = {
   scores: [$('score-0'), $('score-1')], rows: [$('row-0'), $('row-1')], bars: [$('bar-0'), $('bar-1')],
@@ -25,7 +26,7 @@ export function updateUI() {
   el.selScore.textContent = sel.count ? (sel.valid ? `+${sel.score}` : '✗') : '—';
   el.selScore.classList.toggle('bad', sel.count > 0 && !sel.valid);
   const left = dice.filter((d) => d.state === 'table').length;
-  const canRoll = mine && !game.bloque && (game.phase === 'idle' || (game.phase === 'choosing' && sel.valid));
+  const canRoll = mine && !game.bloque && !game.waitVoices && (game.phase === 'idle' || (game.phase === 'choosing' && sel.valid));
   const block = mine && bankBlock(0, game.turnScore + sel.score);
   const canBank = mine && !game.bloque && game.phase === 'choosing' && sel.valid && !block;
   // sur téléphone, la combinaison prend la place du conseil : elle rappelle aussi pourquoi on ne peut pas encore garder
@@ -33,7 +34,7 @@ export function updateUI() {
   el.selDetail.textContent = sel.count ? (sel.valid ? formatParts(sel.parts) + (block ? ` · ${blockShort}` : '') : 'Combinaison incomplète') : '';
   el.roll.disabled = !canRoll;
   el.bank.disabled = !canBank;
-  el.rollLbl.textContent = game.phase === 'choosing' && mine ? (left === 0 && sel.valid ? 'Relancer les 6' : `Relancer (${left})`) : 'Lancer';
+  el.rollLbl.textContent = game.waitVoices ? 'Patience…' : game.phase === 'choosing' && mine ? (left === 0 && sel.valid ? 'Relancer les 6' : `Relancer (${left})`) : 'Lancer';
   el.bankLbl.textContent = canBank ? `Garder ${game.turnScore + sel.score}` : 'Garder';
   // « Abandonner » reste affiché tout le dernier tour (inactif pendant que les dés roulent) ; le panneau grandit, on recadre le plateau
   const lastTurn = mine && game.finalFrom === 1 && game.phase !== 'menu' && game.phase !== 'over';
@@ -44,7 +45,12 @@ export function updateUI() {
   const need = game.finalFrom !== null ? `Dernier tour : il te faut plus de ${game.scores[1] - game.scores[0]} points.`
     : `Il te faut ${OPENING} points en un tour pour ouvrir ton score.`;
   let hint = '';
-  if (!mine) hint = game.aiStatus;
+  if (game.waitVoices) {
+    // les voix de la partie se chargent encore : on montre où on en est (voir waitVoices dans partie.js)
+    const { done, total, from } = talk.loading;
+    const pct = total > from ? Math.min(99, Math.floor(((done - from) / (total - from)) * 100)) : 99;
+    hint = `La taverne s’installe… Voix chargées à ${pct} %.`;
+  } else if (!mine) hint = game.aiStatus;
   else if (game.phase === 'idle') hint = bankBlock(0, 0) ? need : 'Lance les dés pour commencer ton tour.';
   else if (game.phase === 'rolling') hint = 'Les dés roulent…';
   else if (game.phase === 'farkle') hint = 'Rien à garder. La main passe.';
