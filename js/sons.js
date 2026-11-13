@@ -124,47 +124,86 @@ function startAmbience() {
 // sur certains appareils, sans erreur visible. Elle démarre dès qu’elle est chargée, en fondu (sur son propre gain :
 // celui de la piste musique sert à l’effacer sous les voix, voir duckMusic). Un seul morceau est gardé décodé
 // à la fois : deux minutes de musique décodée pèsent une quarantaine de Mo, c’est beaucoup sur un téléphone.
+// Chaque morceau est joué une fois jusqu’au bout (ils finissent tous en s’éteignant), puis un autre prend la suite.
 let musicPick = 0, musicLoaded = -1, musicLoad = null;
-function startMusic() {
+function startMusic(fadeIn = 5) {
   if (!audio.ctx || !audio.on.music || document.hidden || audio.music) return;
   if (musicLoaded !== musicPick) {
     const want = musicPick;
-    musicLoad ||= loadAudio(MUSIC[want]).then((buf) => {
+    musicLoad ||= loadMusic(want).then((buf) => {
       musicLoad = null;
       // échec (hors connexion, morceau jamais gardé) : le premier morceau à la place, sinon on réessaiera au prochain geste
-      if (!buf) { if (want === musicPick && want !== 0) { musicPick = 0; startMusic(); } return; }
+      if (!buf) { if (want === musicPick && want !== 0) { pickMusic(0); startMusic(fadeIn); } return; }
       if (want === musicPick) { audio.buffers.musique = buf; musicLoaded = want; }
-      startMusic(); // (un autre morceau a pu être tiré entre-temps : c’est lui qu’on charge alors)
+      startMusic(fadeIn); // (un autre morceau a pu être tiré entre-temps : c’est lui qu’on charge alors)
     });
     return;
   }
   const { ctx } = audio, t = ctx.currentTime;
   const src = ctx.createBufferSource(), fade = ctx.createGain();
-  src.buffer = audio.buffers.musique; src.loop = true;
+  src.buffer = audio.buffers.musique;
   src.connect(fade); fade.connect(audio.bus.music);
-  fade.gain.setValueAtTime(0, t); fade.gain.linearRampToValueAtTime(1, t + 5);
+  fade.gain.setValueAtTime(0, t); fade.gain.linearRampToValueAtTime(1, t + fadeIn);
   src.start();
   src.fade = fade;
+  src.onended = () => musicEnded(src);
   audio.music = src;
+  heard.add(musicPick);
+  musicNext = nextMusic();
+  setTimeout(prefetchMusic, 30000); // pas tout de suite : les bruitages et les voix se chargent peut-être encore
 }
 function stopMusic() {
   if (!audio.music) return;
   audio.music.stop(); audio.music.disconnect(); audio.music.fade.disconnect(); audio.music = null;
 }
+function pickMusic(i) {
+  if (i === musicPick) return false;
+  musicPick = i;
+  delete audio.buffers.musique; musicLoaded = -1;
+  return true;
+}
+// Le morceau suivant : jamais celui qui vient de jouer, et chacun passe avant qu’un autre ne revienne
+const heard = new Set();
+let musicNext = -1;
+function nextMusic() {
+  const others = () => MUSIC.map((_, i) => i).filter((i) => i !== musicPick && !heard.has(i));
+  let pool = others();
+  if (!pool.length) { heard.clear(); heard.add(musicPick); pool = others(); }
+  return pool[(Math.random() * pool.length) | 0];
+}
+function musicEnded(src) {
+  src.disconnect(); src.fade.disconnect();
+  if (audio.music !== src) return; // arrêté exprès (musique coupée, nouvelle partie)
+  audio.music = null;
+  pickMusic(musicNext);
+  startMusic(0.05); // le morceau commence par son début, sans fondu
+}
+// Le morceau suivant est téléchargé pendant que l’autre joue (sans être décodé : quelques Mo seulement),
+// pour qu’il enchaîne aussitôt, même s’il n’a encore jamais été entendu
+let musicBytes = null;
+function prefetchMusic() {
+  if (!audio.music || musicBytes?.i === musicNext) return;
+  musicBytes = { i: musicNext, bytes: fetch(MUSIC[musicNext]).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) };
+}
+async function loadMusic(i) {
+  const pre = musicBytes;
+  if (pre?.i === i) {
+    musicBytes = null;
+    const bytes = await pre.bytes;
+    if (bytes) try { return await audio.ctx.decodeAudioData(bytes); } catch { /* fichier abîmé : on le retélécharge */ }
+  }
+  return loadAudio(MUSIC[i]);
+}
 // En début de partie, la musique est tirée au hasard parmi les morceaux. Le même peut revenir : il continue alors
 // sans s’interrompre ; sinon l’ancien s’efface en 2 s pendant que le nouveau se charge, puis entre en fondu
 export function shuffleMusic() {
-  const next = (Math.random() * MUSIC.length) | 0;
-  if (next === musicPick) return;
-  musicPick = next;
-  delete audio.buffers.musique; musicLoaded = -1;
+  if (!pickMusic((Math.random() * MUSIC.length) | 0)) return;
   const old = audio.music;
   if (!old) return; // rien ne joue (musique coupée, onglet caché) : le bon morceau partira au prochain startMusic
   audio.music = null;
   const t = audio.ctx.currentTime, g = old.fade.gain;
   g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 2);
   old.stop(t + 2.05);
-  old.onended = () => { old.disconnect(); old.fade.disconnect(); };
   startMusic();
 }
 // Pendant le dernier tour, la salle retient son souffle : l’ambiance baisse (voir hushRoom)
